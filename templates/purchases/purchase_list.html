@@ -1,0 +1,112 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+{% load jcal %}
+
+{% block title %}{% trans "لیست فاکتورهای خرید" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "جستجوی پیشرفته خریدها" %}</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small">از تاریخ (شمسی)</label>
+                    <input type="text" name="from_date" class="form-control datepicker" value="{{ from_date }}" placeholder="مثال: 1402/01/01" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">تا تاریخ (شمسی)</label>
+                    <input type="text" name="to_date" class="form-control datepicker" value="{{ to_date }}" placeholder="مثال: 1402/12/29" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">شماره فاکتور</label>
+                    <input type="text" name="invoice_no" class="form-control" value="{{ invoice_no }}" placeholder="شماره فاکتور">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">تهیه‌کننده</label>
+                    <input type="text" name="supplier_name" class="form-control" value="{{ supplier_name }}" placeholder="نام تهیه‌کننده">
+                </div>
+                <div class="col-12 text-center">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> جستجو</button>
+                    <a href="{% url 'purchases:purchase_list' %}" class="btn btn-secondary btn-sm">پاک کردن فیلترها</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "لیست خریدها" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{% trans "تاریخ" %}</th>
+                            <th>{% trans "شماره فاکتور" %}</th>
+                            <th>{% trans "تهیه‌کننده" %}</th>
+                            <th>{% trans "واحد پول" %}</th>
+                            <th>{% trans "مبلغ کل" %}</th>
+                            <th>{% trans "پرداختی" %}</th>
+                            <th>{% trans "باقیمانده" %}</th>
+                            <th>{% trans "عملیات" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in purchases %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ purchase.date|to_jalali }}</td>
+                            <td>{{ purchase.invoice_number }}</td>
+                            <td>{{ purchase.supplier.name }}</td>
+                            <td>{{ purchase.get_currency_display }}</td>
+                            <td>{{ purchase.total_amount|floatformat:2 }}</td>
+                            <td>{{ purchase.paid_amount|floatformat:2 }}</td>
+                            <td>{{ purchase.remaining_amount|floatformat:2 }}</td>
+                            <td>
+                                <a href="{% url 'purchases:purchase_detail' purchase.id %}" class="btn btn-sm btn-info" title="نمایش فاکتور">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'purchases:purchase_edit' purchase.id %}" class="btn btn-sm btn-primary" title="ویرایش">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="#" onclick="confirmDelete({{ purchase.id }})" class="btn btn-sm btn-danger" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <td><td colspan="9" class="text-center">هیچ خریدی با معیارهای جستجو یافت نشد.{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css"/>
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.datepicker').pDatepicker({
+            format: 'YYYY/MM/DD',
+            calendarType: 'persian',
+            observer: true,
+            persianDigits: true,
+            monthNames: ['حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله', 'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت']
+        });
+    });
+
+    function confirmDelete(id) {
+        if (confirm('آیا از حذف این فاکتور خرید اطمینان دارید؟')) {
+            window.location.href = "{% url 'purchases:purchase_delete' 0 %}".replace('0', id);
+        }
+    }
+</script>
+{% endblock %}

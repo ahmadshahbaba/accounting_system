@@ -1,0 +1,45 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+{% load jcal %}
+
+{% block title %}{% trans "لیست مصارف" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "لیست مصارف" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{% trans "تاریخ" %}</th>
+                            <th>{% trans "جنس" %}</th>
+                            <th>{% trans "تعداد" %}</th>
+                            <th>{% trans "علت مصرف" %}</th>
+                            <th>{% trans "ثبت کننده" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for consumption in consumptions %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ consumption.date|to_jalali }}</td>
+                            <td>{{ consumption.product.name }}</td>
+                            <td>{{ consumption.quantity }}</td>
+                            <td>{{ consumption.reason|default:"-" }}</td>
+                            <td>{{ consumption.user.get_full_name|default:consumption.user.username }}</td>
+                        </tr>
+                        {% empty %}
+                        <td><td colspan="6" class="text-center">هیچ مصرفی ثبت نشده است.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

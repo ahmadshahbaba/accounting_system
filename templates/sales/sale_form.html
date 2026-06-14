@@ -1,0 +1,262 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "ثبت فروش جدید" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "فرم ثبت فاکتور فروش" %}</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" id="saleForm">
+                {% csrf_token %}
+
+                <!-- بخش مشتری -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">{% trans "نوع مشتری" %}</label>
+                            <select name="customer_type" id="customer_type" class="form-select" required>
+                                <option value="existing">{% trans "انتخاب از لیست مشتریان" %}</option>
+                                <option value="new">{% trans "مشتری جدید" %}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6" id="existing_customer_div">
+                        <label class="form-label">{% trans "انتخاب مشتری" %}</label>
+                        <select name="customer_id" class="form-select" id="customer_id">
+                            <option value="">{% trans "انتخاب کنید" %}</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}" data-currency="{{ customer.currency.id }}" data-phone="{{ customer.phone }}">{{ customer.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6" id="new_customer_div" style="display: none;">
+                        <div class="mb-2">
+                            <label class="form-label">{% trans "نام مشتری" %}</label>
+                            <input type="text" name="customer_name" class="form-control">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">{% trans "شماره تماس" %}</label>
+                            <input type="text" name="customer_phone" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- واحد پول (داینامیک) -->
+                <div class="mb-3">
+                    <label class="form-label">{% trans "واحد پول" %}</label>
+                    <select name="currency" id="currency" class="form-select" required>
+                        {% for curr in currencies %}
+                        <option value="{{ curr.id }}" data-code="{{ curr.code }}">{{ curr.name }} ({{ curr.symbol }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- تاریخ شمسی -->
+                <div class="mb-3">
+                    <label class="form-label">{% trans "تاریخ (شمسی)" %}</label>
+                    <input type="text" name="transaction_date" id="jalali_date" class="form-control" value="{{ today_jalali }}" readonly required>
+                </div>
+
+                <!-- جدول اقلام فروش -->
+                <h5>{% trans "اقلام فروش" %}</h5>
+                <table class="table table-bordered" id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th>{% trans "نام جنس" %}</th>
+                            <th>{% trans "قیمت فروش" %}</th>
+                            <th>{% trans "تعداد" %}</th>
+                            <th>{% trans "حذف" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="item-row">
+                            <td>
+                                <select name="product_id" class="form-select product-select" required>
+                                    <option value="">انتخاب کنید</option>
+                                    {% for product in products %}
+                                    <option value="{{ product.id }}" data-price="{{ product.selling_price }}">{{ product.name }} ({{ product.selling_price }})</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input type="number" step="0.01" name="unit_price" class="form-control price-input" required></td>
+                            <td><input type="number" name="quantity" class="form-control qty-input" value="1" min="1" required></td>
+                            <td><button type="button" class="btn btn-danger btn-sm remove-row">حذف</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button type="button" id="addRow" class="btn btn-secondary mb-3">+ افزودن کالا</button>
+
+                <!-- بخش پرداخت -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">{% trans "روش پرداخت" %}</label>
+                        <select name="payment_method" id="payment_method" class="form-select" required>
+                            <option value="CASH">نقد</option>
+                            <option value="CREDIT">قرض</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3" id="paid_amount_div" style="display: none;">
+                        <label class="form-label">{% trans "مبلغ پرداخت شده" %}</label>
+                        <input type="number" step="0.01" name="paid_amount" id="paid_amount" class="form-control" value="0">
+                    </div>
+                </div>
+
+                <div class="alert alert-info" id="remaining_display"></div>
+
+                <button type="submit" class="btn btn-primary">{% trans "ثبت فروش" %}</button>
+                <a href="{% url 'sales:sale_list' %}" class="btn btn-secondary">{% trans "انصراف" %}</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- کتابخانه‌های تقویم شمسی -->
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css"/>
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    // تقویم شمسی
+    $(document).ready(function() {
+        $("#jalali_date").pDatepicker({
+            format: 'YYYY/MM/DD',
+            initialValue: true,
+            calendarType: 'persian',
+            observer: true,
+            persianDigits: true,
+            monthNames: ['حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله', 'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت']
+        });
+    });
+
+    // نمایش/عدم نمایش فیلدهای مشتری جدید
+    const customerTypeSelect = document.getElementById('customer_type');
+    const existingDiv = document.getElementById('existing_customer_div');
+    const newDiv = document.getElementById('new_customer_div');
+    customerTypeSelect.addEventListener('change', function() {
+        if (this.value === 'existing') {
+            existingDiv.style.display = 'block';
+            newDiv.style.display = 'none';
+        } else {
+            existingDiv.style.display = 'none';
+            newDiv.style.display = 'block';
+        }
+    });
+
+    // تنظیم واحد پول هنگام انتخاب مشتری از لیست
+    const customerSelect = document.getElementById('customer_id');
+    const currencySelect = document.getElementById('currency');
+    customerSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const currencyId = selectedOption.getAttribute('data-currency');
+        if (currencyId) {
+            for (let i = 0; i < currencySelect.options.length; i++) {
+                if (currencySelect.options[i].value == currencyId) {
+                    currencySelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    });
+
+    // محاسبه خودکار قیمت فروش هنگام انتخاب محصول
+    function updatePrice(row) {
+        const productSelect = row.querySelector('.product-select');
+        const priceInput = row.querySelector('.price-input');
+        const selectedOption = productSelect.options[productSelect.selectedIndex];
+        const price = selectedOption.getAttribute('data-price');
+        if (price) priceInput.value = price;
+        else priceInput.value = '';
+    }
+
+    // افزودن ردیف جدید
+    document.getElementById('addRow').addEventListener('click', function() {
+        const tbody = document.querySelector('#itemsTable tbody');
+        const newRow = tbody.rows[0].cloneNode(true);
+        newRow.querySelectorAll('input, select').forEach(el => el.value = '');
+        newRow.querySelector('.qty-input').value = 1;
+        tbody.appendChild(newRow);
+        attachRowEvents(newRow);
+    });
+
+    function attachRowEvents(row) {
+        const productSelect = row.querySelector('.product-select');
+        productSelect.addEventListener('change', () => updatePrice(row));
+        const priceInput = row.querySelector('.price-input');
+        const qtyInput = row.querySelector('.qty-input');
+        priceInput.addEventListener('change', calculateTotal);
+        qtyInput.addEventListener('change', calculateTotal);
+        const removeBtn = row.querySelector('.remove-row');
+        removeBtn.addEventListener('click', function() {
+            if (document.querySelectorAll('.item-row').length > 1) {
+                row.remove();
+                calculateTotal();
+            } else {
+                alert('حداقل یک آیتم باید وجود داشته باشد');
+            }
+        });
+        updatePrice(row);
+    }
+
+    function calculateTotal() {
+        let total = 0;
+        document.querySelectorAll('.item-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+            const price = parseFloat(row.querySelector('.price-input').value) || 0;
+            total += qty * price;
+        });
+        document.getElementById('total_amount_display').value = total;
+        updateRemaining();
+    }
+
+    function updateRemaining() {
+        const total = getTotal();
+        const paid = parseFloat(document.getElementById('paid_amount').value) || 0;
+        const remaining = total - paid;
+        const display = document.getElementById('remaining_display');
+        if (remaining > 0) {
+            display.innerHTML = `<strong>باقی‌مانده: ${remaining.toFixed(2)}</strong>`;
+            display.classList.add('alert-warning');
+        } else if (remaining < 0) {
+            display.innerHTML = `<strong class="text-danger">اضافه پرداختی: ${(-remaining).toFixed(2)}</strong>`;
+        } else {
+            display.innerHTML = `<strong class="text-success">تسویه شده</strong>`;
+        }
+    }
+
+    function getTotal() {
+        let total = 0;
+        document.querySelectorAll('.item-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+            const price = parseFloat(row.querySelector('.price-input').value) || 0;
+            total += qty * price;
+        });
+        return total;
+    }
+
+    // نمایش فیلد مبلغ پرداخت شده در حالت قرض
+    const paymentMethod = document.getElementById('payment_method');
+    const paidAmountDiv = document.getElementById('paid_amount_div');
+    paymentMethod.addEventListener('change', function() {
+        if (this.value === 'CREDIT') {
+            paidAmountDiv.style.display = 'block';
+            document.getElementById('paid_amount').value = 0;
+        } else {
+            paidAmountDiv.style.display = 'none';
+            document.getElementById('paid_amount').value = getTotal();
+        }
+        updateRemaining();
+    });
+
+    // رویدادهای اولیه
+    document.querySelectorAll('.item-row').forEach(row => attachRowEvents(row));
+    paymentMethod.dispatchEvent(new Event('change'));
+    calculateTotal();
+</script>
+
+<input type="hidden" id="total_amount_display" name="total_amount">
+{% endblock %}

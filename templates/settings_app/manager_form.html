@@ -1,0 +1,48 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% if manager %}{% trans "ویرایش مدیر" %}{% else %}{% trans "افزودن مدیر جدید" %}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center">
+    <div class="card shadow w-50">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if manager %}ویرایش مدیر{% else %}افزودن مدیر جدید{% endif %}
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label>نام کاربری</label>
+                    <input type="text" name="username" class="form-control" value="{{ manager.username|default:'' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label>رمز عبور</label>
+                    <input type="password" name="password" class="form-control" {% if not manager %}required{% endif %}>
+                    {% if manager %}<small class="text-muted">در صورت تمایل به تغییر رمز، وارد کنید.</small>{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label>ایمیل</label>
+                    <input type="email" name="email" class="form-control" value="{{ manager.email|default:'' }}">
+                </div>
+                <div class="mb-3">
+                    <label>نام</label>
+                    <input type="text" name="first_name" class="form-control" value="{{ manager.first_name|default:'' }}">
+                </div>
+                <div class="mb-3">
+                    <label>نام خانوادگی</label>
+                    <input type="text" name="last_name" class="form-control" value="{{ manager.last_name|default:'' }}">
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="is_superuser" class="form-check-input" {% if manager.is_superuser %}checked{% endif %}>
+                    <label class="form-check-label">دسترسی ابرمدیر (همه مجوزها)</label>
+                </div>
+                <button type="submit" class="btn btn-primary">ذخیره</button>
+                <a href="{% url 'settings_app:managers_list' %}" class="btn btn-secondary">انصراف</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

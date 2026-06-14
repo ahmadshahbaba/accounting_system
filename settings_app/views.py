@@ -1,0 +1,175 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from .models import ShopInfo, UnitOfMeasure, Currency
+
+# ========== معلومات عمومی ==========
+@login_required
+def general_info(request):
+    shop_info, created = ShopInfo.objects.get_or_create(pk=1)
+    password_form = PasswordChangeForm(request.user)
+
+    if request.method == 'POST':
+        if 'update_shop_info' in request.POST:
+            shop_info.shop_name = request.POST.get('shop_name')
+            shop_info.address = request.POST.get('address')
+            shop_info.phone = request.POST.get('phone')
+            shop_info.email = request.POST.get('email')
+            shop_info.footer_text = request.POST.get('footer_text')
+            shop_info.save()
+            messages.success(request, 'اطلاعات فروشگاه با موفقیت به‌روز شد.')
+
+        elif 'change_password' in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, 'رمز عبور با موفقیت تغییر کرد.')
+            else:
+                messages.error(request, 'خطا در تغییر رمز عبور. لطفاً دوباره تلاش کنید.')
+
+        elif 'change_username' in request.POST:
+            new_username = request.POST.get('new_username')
+            if User.objects.exclude(pk=request.user.pk).filter(username=new_username).exists():
+                messages.error(request, 'این نام کاربری قبلاً ثبت شده است.')
+            else:
+                request.user.username = new_username
+                request.user.save()
+                messages.success(request, 'نام کاربری با موفقیت تغییر کرد.')
+
+        return redirect('settings_app:general_info')
+
+    return render(request, 'settings_app/general_info.html', {
+        'shop_info': shop_info,
+        'user': request.user,
+        'password_form': password_form,
+    })
+
+# ========== مدیریت واحدها ==========
+@login_required
+def units_list(request):
+    units = UnitOfMeasure.objects.all()
+    currencies = Currency.objects.all()
+    return render(request, 'settings_app/units_list.html', {
+        'units': units,
+        'currencies': currencies,
+    })
+
+@login_required
+def unit_add(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        symbol = request.POST.get('symbol')
+        UnitOfMeasure.objects.create(name=name, symbol=symbol)
+        messages.success(request, 'واحد اندازه‌گیری اضافه شد.')
+        return redirect('settings_app:units_list')
+    return redirect('settings_app:units_list')
+
+@login_required
+def unit_edit(request, pk):
+    unit = get_object_or_404(UnitOfMeasure, pk=pk)
+    if request.method == 'POST':
+        unit.name = request.POST.get('name')
+        unit.symbol = request.POST.get('symbol')
+        unit.save()
+        messages.success(request, 'واحد ویرایش شد.')
+    return redirect('settings_app:units_list')
+
+@login_required
+def unit_delete(request, pk):
+    unit = get_object_or_404(UnitOfMeasure, pk=pk)
+    unit.delete()
+    messages.success(request, 'واحد حذف شد.')
+    return redirect('settings_app:units_list')
+
+@login_required
+def currency_add(request):
+    if request.method == 'POST':
+        code = request.POST.get('code')
+        name = request.POST.get('name')
+        symbol = request.POST.get('symbol')
+        Currency.objects.create(code=code, name=name, symbol=symbol)
+        messages.success(request, 'واحد پول اضافه شد.')
+    return redirect('settings_app:units_list')
+
+@login_required
+def currency_edit(request, pk):
+    currency = get_object_or_404(Currency, pk=pk)
+    if request.method == 'POST':
+        currency.code = request.POST.get('code')
+        currency.name = request.POST.get('name')
+        currency.symbol = request.POST.get('symbol')
+        currency.save()
+        messages.success(request, 'واحد پول ویرایش شد.')
+    return redirect('settings_app:units_list')
+
+@login_required
+def currency_delete(request, pk):
+    currency = get_object_or_404(Currency, pk=pk)
+    currency.delete()
+    messages.success(request, 'واحد پول حذف شد.')
+    return redirect('settings_app:units_list')
+
+# ========== مدیریت مدیران ==========
+@login_required
+def managers_list(request):
+    managers = User.objects.filter(is_staff=True).order_by('-is_superuser', 'username')
+    return render(request, 'settings_app/managers_list.html', {'managers': managers})
+
+@login_required
+def manager_add(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        is_superuser = request.POST.get('is_superuser') == 'on'
+        is_staff = True
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'این نام کاربری قبلاً ثبت شده است.')
+        else:
+            User.objects.create_user(
+                username=username,
+                password=password,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                is_staff=is_staff,
+                is_superuser=is_superuser
+            )
+            messages.success(request, f'مدیر {username} با موفقیت اضافه شد.')
+        return redirect('settings_app:managers_list')
+    return render(request, 'settings_app/manager_form.html')
+
+@login_required
+def manager_edit(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        user.username = request.POST.get('username')
+        user.email = request.POST.get('email')
+        user.first_name = request.POST.get('first_name')
+        user.last_name = request.POST.get('last_name')
+        user.is_superuser = request.POST.get('is_superuser') == 'on'
+        password = request.POST.get('password')
+        if password:
+            user.password = make_password(password)
+        user.save()
+        messages.success(request, 'اطلاعات مدیر به‌روز شد.')
+        return redirect('settings_app:managers_list')
+    return render(request, 'settings_app/manager_form.html', {'manager': user})
+
+@login_required
+def manager_delete(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    if user == request.user:
+        messages.error(request, 'شما نمی‌توانید خودتان را حذف کنید.')
+    else:
+        user.delete()
+        messages.success(request, f'مدیر {user.username} حذف شد.')
+    return redirect('settings_app:managers_list')

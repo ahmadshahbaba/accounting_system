@@ -1,0 +1,13 @@
+{% extends 'base/base.html' %}
+{% block title %}{% if type == 'IN' %}ورود کالا{% else %}خروج کالا{% endif %}{% endblock %}
+{% block content %}
+<h2>{% if type == 'IN' %}ورود به انبار{% else %}خروج از انبار{% endif %}</h2>
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3"><label>محصول</label><select name="product" class="form-select">{% for p in products %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></div>
+    <div class="mb-3"><label>تعداد</label><input type="number" name="quantity" class="form-control" required min="1"></div>
+    <div class="mb-3"><label>قیمت در زمان تراکنش</label><input type="number" step="0.01" name="price_at_time" class="form-control" required></div>
+    <div class="mb-3"><label>توضیحات</label><input type="text" name="description" class="form-control"></div>
+    <button type="submit" class="btn btn-primary">ثبت</button>
+</form>
+{% endblock %}

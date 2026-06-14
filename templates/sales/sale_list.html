@@ -1,0 +1,124 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+{% load jcal %}
+
+{% block title %}{% trans "لیست فاکتورهای فروش" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- بخش جستجو -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "جستجوی پیشرفته فروشات" %}</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small">از تاریخ (شمسی)</label>
+                    <input type="text" name="from_date" class="form-control datepicker" value="{{ from_date }}" placeholder="مثال: 1402/01/01" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">تا تاریخ (شمسی)</label>
+                    <input type="text" name="to_date" class="form-control datepicker" value="{{ to_date }}" placeholder="مثال: 1402/12/29" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">شماره فاکتور</label>
+                    <input type="text" name="invoice_no" class="form-control" value="{{ invoice_no }}" placeholder="شماره فاکتور">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">نام مشتری</label>
+                    <input type="text" name="customer_name" class="form-control" value="{{ customer_name }}" placeholder="نام مشتری">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">شماره تماس مشتری</label>
+                    <input type="text" name="customer_phone" class="form-control" value="{{ customer_phone }}" placeholder="شماره تماس">
+                </div>
+                <div class="col-12 text-center">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> جستجو</button>
+                    <a href="{% url 'sales:sale_list' %}" class="btn btn-secondary btn-sm">پاک کردن فیلترها</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول لیست فروشات -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "لیست فروشات" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{% trans "تاریخ" %}</th>
+                            <th>{% trans "شماره فاکتور" %}</th>
+                            <th>{% trans "نام مشتری" %}</th>
+                            <th>{% trans "مبلغ کل" %}</th>
+                            <th>{% trans "واحد پول" %}</th>
+                            <th>{% trans "پرداختی" %}</th>
+                            <th>{% trans "باقیمانده" %}</th>
+                            <th>{% trans "عملیات" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in sales %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ sale.transaction_date|to_jalali }}</td>
+                            <td>{{ sale.invoice_number }}</td>
+                            <td>{% if sale.customer %}{{ sale.customer.name }}{% else %}{{ sale.customer_name }}{% endif %}</td>
+                            <td>{{ sale.total_amount|floatformat:2 }}</td>
+                            <td>{{ sale.currency.name }} ({{ sale.currency.symbol }})</td>
+                            <td>{{ sale.paid_amount|floatformat:2 }}</td>
+                            <td>{{ sale.remaining_amount|floatformat:2 }}</td>
+                            <td>
+                                <a href="{% url 'sales:sale_detail' sale.id %}" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                                <a href="{% url 'sales:sale_edit' sale.id %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></a>
+                                <a href="#" onclick="confirmDelete({{ sale.id }})" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="9" class="text-center">هیچ فروشی با معیارهای جستجو یافت نشد.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- کارت سود فروشات (در پایین بعد از جدول) -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-success text-white">
+            <h6 class="m-0 font-weight-bold">{% trans "سود فروشات (بر اساس بازه جستجو)" %}</h6>
+        </div>
+        <div class="card-body text-center">
+            <h3 class="text-success">{{ total_profit|floatformat:2 }} {{ request.session.currency|default:"افغانی" }}</h3>
+            <small class="text-muted">سود کل برای فروش‌های موجود در بازه انتخابی</small>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css"/>
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.datepicker').pDatepicker({
+            format: 'YYYY/MM/DD',
+            calendarType: 'persian',
+            observer: true,
+            persianDigits: true,
+            monthNames: ['حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله', 'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت']
+        });
+    });
+
+    function confirmDelete(id) {
+        if (confirm('{% trans "آیا از حذف این فاکتور اطمینان دارید؟" %}')) {
+            window.location.href = "{% url 'sales:sale_delete' 0 %}".replace('0', id);
+        }
+    }
+</script>
+{% endblock %}

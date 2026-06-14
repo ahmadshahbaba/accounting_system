@@ -1,0 +1,1 @@
+web: gunicorn accounting_system.wsgi

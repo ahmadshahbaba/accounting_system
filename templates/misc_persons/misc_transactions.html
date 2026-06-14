@@ -1,0 +1,109 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+{% load jcal %}
+
+{% block title %}{% trans "تراکنش‌های شخص متفرقه" %} - {{ person.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid" id="print-area">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% trans "تراکنش‌های شخص متفرقه" %} : {{ person.name }}
+            </h6>
+            <div>
+                <button onclick="window.print()" class="btn btn-sm btn-success">
+                    <i class="fas fa-print"></i> {% trans "چاپ" %}
+                </button>
+                <a href="{% url 'misc_persons:misc_list' %}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-arrow-right"></i> {% trans "بازگشت" %}
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <p><strong>{% trans "نام شخص:" %}</strong> {{ person.name }}</p>
+                    <p><strong>{% trans "شماره تماس:" %}</strong> {{ person.phone|default:"-" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>{% trans "واحد پول:" %}</strong> {{ person.currency.name }} ({{ person.currency.symbol }})</p>
+                    <p><strong>{% trans "آدرس:" %}</strong> {{ person.address|default:"-" }}</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>{% trans "ردیف" %}</th>
+                            <th>{% trans "تاریخ" %}</th>
+                            <th>{% trans "نوع" %}</th>
+                            <th>{% trans "شرح" %}</th>
+                            <th>{% trans "بدهکار" %}</th>
+                            <th>{% trans "بستانکار" %}</th>
+                            <th>{% trans "مانده" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tr in transactions %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ tr.date|to_jalali }}</td>
+                            <td>{{ tr.type }}</td>
+                            <td>{{ tr.description }}</td>
+                            <td class="{% if tr.debit %}text-danger fw-bold{% endif %}">
+                                {% if tr.debit %}{{ tr.debit|floatformat:2 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="{% if tr.credit %}text-success fw-bold{% endif %}">
+                                {% if tr.credit %}{{ tr.credit|floatformat:2 }}{% else %}-{% endif %}
+                            </td>
+                            <td><strong>{{ tr.balance|floatformat:2 }}</strong></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">{% trans "هیچ تراکنشی یافت نشد." %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-secondary">
+                            <th colspan="6">{% trans "جمع نهایی:" %}</th>
+                            <th>
+                                {% if transactions %}
+                                    {% with last=transactions|last %}
+                                        <strong>{{ last.balance|floatformat:2 }}</strong>
+                                    {% endwith %}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </th>
+                        <tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .sidebar, .top-navbar, .btn, .mobile-menu-btn, footer, .alert, .card-header .btn, .card-header a {
+            display: none !important;
+        }
+        body, .content, .container-fluid, .card, .card-body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+        .table { width: 100%; border-collapse: collapse; font-size: 11pt; }
+        .table th, .table td { border: 1px solid #ccc; padding: 6px 4px; text-align: center; }
+        .table th { background-color: #f2f2f2 !important; }
+        .text-danger { color: #d9534f !important; }
+        .text-success { color: #5cb85c !important; }
+        tr { page-break-inside: avoid; }
+        body { font-family: 'Vazir', 'Tahoma', sans-serif; }
+        @page { margin: 1.5cm; }
+    }
+</style>
+{% endblock %}

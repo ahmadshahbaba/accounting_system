@@ -1,0 +1,54 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% if edit_mode %}{% trans "ویرایش تهیه‌کننده" %}{% else %}{% trans "ثبت تهیه‌کننده جدید" %}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 100px);">
+    <div class="card shadow mb-4" style="width:100%; max-width:700px;">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if edit_mode %}{% trans "ویرایش تهیه‌کننده" %}{% else %}{% trans "فرم ثبت تهیه‌کننده جدید" %}{% endif %}
+            </h6>
+        </div>
+        <div class="card-body py-3">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "نام تهیه‌کننده" %}</label>
+                    <input type="text" name="name" class="form-control form-control-sm" 
+                           placeholder="{% trans 'نام تهیه‌کننده را وارد کنید' %}" 
+                           value="{% if edit_mode %}{{ supplier.name }}{% endif %}" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "شماره تماس" %}</label>
+                    <input type="text" name="phone" class="form-control form-control-sm" 
+                           placeholder="{% trans 'شماره تماس را وارد کنید' %}" 
+                           value="{% if edit_mode %}{{ supplier.phone }}{% endif %}">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "واحد پول" %}</label>
+                    <select name="currency" class="form-select form-select-sm" required>
+                        {% for curr in currencies %}
+                        <option value="{{ curr.id }}" {% if edit_mode and supplier.currency.id == curr.id %}selected{% endif %}>
+                            {{ curr.name }} ({{ curr.symbol }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "آدرس" %}</label>
+                    <textarea name="address" class="form-control form-control-sm" rows="2" 
+                              placeholder="{% trans 'آدرس را وارد کنید' %}">{% if edit_mode %}{{ supplier.address }}{% endif %}</textarea>
+                </div>
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        {% if edit_mode %}{% trans "به‌روزرسانی" %}{% else %}{% trans "ذخیره تهیه‌کننده" %}{% endif %}
+                    </button>
+                    <a href="{% url 'suppliers:supplier_list' %}" class="btn btn-secondary btn-sm px-4">{% trans "انصراف" %}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

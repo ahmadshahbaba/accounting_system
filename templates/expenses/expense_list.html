@@ -1,0 +1,120 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+{% load jcal %}
+
+{% block title %}{% trans "لیست مصارف" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- بخش جستجو -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "جستجوی پیشرفته مصارف" %}</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label small">از تاریخ (شمسی)</label>
+                    <input type="text" name="from_date" class="form-control datepicker" value="{{ from_date }}" placeholder="مثال: 1402/01/01" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">تا تاریخ (شمسی)</label>
+                    <input type="text" name="to_date" class="form-control datepicker" value="{{ to_date }}" placeholder="مثال: 1402/12/29" readonly>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">نوع مصرف</label>
+                    <select name="expense_type" class="form-select">
+                        <option value="">همه</option>
+                        <option value="rent" {% if expense_type == 'rent' %}selected{% endif %}>کرایه دوکان</option>
+                        <option value="electricity" {% if expense_type == 'electricity' %}selected{% endif %}>بل برق</option>
+                        <option value="daily" {% if expense_type == 'daily' %}selected{% endif %}>مصارف روزانه</option>
+                        <option value="personal" {% if expense_type == 'personal' %}selected{% endif %}>مصارف شخصی</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">واحد پول</label>
+                    <select name="currency" class="form-select">
+                        <option value="">همه</option>
+                        <option value="AFN" {% if currency == 'AFN' %}selected{% endif %}>افغانی</option>
+                        <option value="USD" {% if currency == 'USD' %}selected{% endif %}>دالر</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-search"></i> جستجو</button>
+                </div>
+                <div class="col-12 text-center">
+                    <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary btn-sm">پاک کردن فیلترها</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول لیست مصارف -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "لیست مصارف مالی" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{% trans "تاریخ" %}</th>
+                            <th>{% trans "نوع مصرف" %}</th>
+                            <th>{% trans "واحد پول" %}</th>
+                            <th>{% trans "مبلغ" %}</th>
+                            <th>{% trans "توضیحات" %}</th>
+                            <th>{% trans "ثبت کننده" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ expense.date|to_jalali }}</td>
+                            <td>{{ expense.get_expense_type_display }}</td>
+                            <td>{{ expense.get_currency_display }}</td>
+                            <td>{{ expense.amount|floatformat:2 }}</td>
+                            <td>{{ expense.description|default:"-" }}</td>
+                            <td>{{ expense.created_by.get_full_name|default:expense.created_by.username }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">هیچ مصرفی با معیارهای جستجو یافت نشد.{% endfor %}
+                    </tbody>
+                    {% if total_afn > 0 or total_usd > 0 %}
+                    <tfoot>
+                        <tr class="table-secondary">
+                            <th colspan="4" class="text-end">جمع کل:</th>
+                            <th colspan="3" class="text-start">
+                                {% if total_afn > 0 %}<span class="text-danger fw-bold">{{ total_afn|floatformat:2 }} افغانی</span>{% endif %}
+                                {% if total_afn > 0 and total_usd > 0 %} - {% endif %}
+                                {% if total_usd > 0 %}<span class="text-danger fw-bold">{{ total_usd|floatformat:2 }} دالر</span>{% endif %}
+                            </th>
+                        </td>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- راه‌اندازی تقویم شمسی برای فیلدهای تاریخ -->
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css"/>
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.datepicker').pDatepicker({
+            format: 'YYYY/MM/DD',
+            calendarType: 'persian',
+            observer: true,
+            persianDigits: true,
+            monthNames: ['حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله', 'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت']
+        });
+    });
+</script>
+{% endblock %}

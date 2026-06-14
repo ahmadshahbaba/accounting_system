@@ -1,0 +1,99 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "مدیریت واحدات" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- واحدهای اندازه‌گیری -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">واحدهای اندازه‌گیری</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'settings_app:unit_add' %}" class="row g-3 mb-3">
+                {% csrf_token %}
+                <div class="col-md-4">
+                    <input type="text" name="name" class="form-control" placeholder="نام واحد (مثلاً کیلوگرم)" required>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="symbol" class="form-control" placeholder="نماد (مثلاً kg)">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-success btn-sm">➕ افزودن واحد</button>
+                </div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center">
+                    <thead class="table-light">
+                        <tr><th>نام</th><th>نماد</th><th>عملیات</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for unit in units %}
+                        <tr>
+                            <td>{{ unit.name }} </td>
+                            <td>{{ unit.symbol|default:"-" }} </td>
+                            <td>
+                                <form method="post" action="{% url 'settings_app:unit_edit' unit.id %}" style="display:inline-block">
+                                    {% csrf_token %}
+                                    <input type="text" name="name" value="{{ unit.name }}" class="form-control form-control-sm d-inline w-50">
+                                    <input type="text" name="symbol" value="{{ unit.symbol }}" class="form-control form-control-sm d-inline w-30">
+                                    <button type="submit" class="btn btn-sm btn-primary">ویرایش</button>
+                                </form>
+                                <a href="{% url 'settings_app:unit_delete' unit.id %}" class="btn btn-sm btn-danger" onclick="return confirm('حذف شود؟')">حذف</a>
+                             </td>
+                         </tr>
+                        {% empty %}
+                        <tr><td colspan="3">هیچ واحدی تعریف نشده است.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- واحدهای پول -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">واحدهای پول</h6>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'settings_app:currency_add' %}" class="row g-3 mb-3">
+                {% csrf_token %}
+                <div class="col-md-3"><input type="text" name="code" class="form-control" placeholder="کد (AFN)" required></div>
+                <div class="col-md-3"><input type="text" name="name" class="form-control" placeholder="نام (افغانی)" required></div>
+                <div class="col-md-3"><input type="text" name="symbol" class="form-control" placeholder="نماد (؋)" required></div>
+                <div class="col-md-3"><button type="submit" class="btn btn-success btn-sm">➕ افزودن واحد پول</button></div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center">
+                    <thead class="table-light">
+                        <tr><th>کد</th><th>نام</th><th>نماد</th><th>عملیات</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for curr in currencies %}
+                        <tr>
+                            <td>{{ curr.code }} </td>
+                            <td>{{ curr.name }} </td>
+                            <td>{{ curr.symbol }} </td>
+                            <td>
+                                <form method="post" action="{% url 'settings_app:currency_edit' curr.id %}" style="display:inline-block">
+                                    {% csrf_token %}
+                                    <input type="text" name="code" value="{{ curr.code }}" class="form-control form-control-sm d-inline w-25">
+                                    <input type="text" name="name" value="{{ curr.name }}" class="form-control form-control-sm d-inline w-25">
+                                    <input type="text" name="symbol" value="{{ curr.symbol }}" class="form-control form-control-sm d-inline w-25">
+                                    <button type="submit" class="btn btn-sm btn-primary">ویرایش</button>
+                                </form>
+                                <a href="{% url 'settings_app:currency_delete' curr.id %}" class="btn btn-sm btn-danger" onclick="return confirm('حذف شود؟')">حذف</a>
+                             </td>
+                         </tr>
+                        {% empty %}
+                        <tr><td colspan="4">هیچ واحد پولی تعریف نشده است.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+{% load jcal %}
+
+{% block title %}{% trans "لیست تراکنش‌های مالی" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "لیست تراکنش‌های مالی" %}</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>{% trans "ردیف" %}</th>
+                            <th>{% trans "تاریخ" %}</th>
+                            <th>{% trans "نوع" %}</th>
+                            <th>{% trans "شخص" %}</th>
+                            <th>{% trans "نوع شخص" %}</th>
+                            <th>{% trans "مبلغ" %}</th>
+                            <th>{% trans "توضیحات" %}</th>
+                            <th>{% trans "عملیات" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tr in transactions %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ tr.transaction_date|to_jalali }}</td>
+                            <td>{{ tr.get_transaction_type_display }}</td>
+                            <td>{{ tr.get_person_name }}</td>
+                            <td>{{ tr.get_person_type_display }}</td>
+                            <td class="{% if tr.transaction_type == 'IN' %}text-success{% else %}text-danger{% endif %}">
+                                {{ tr.amount|floatformat:2 }}
+                            </td>
+                            <td>{{ tr.description|default:"-" }}</td>
+                            <td>
+                                <a href="{% url 'transactions:transaction_edit' tr.id %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="#" class="btn btn-sm btn-danger" onclick="confirmDelete({{ tr.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center">{% trans "هیچ تراکنشی ثبت نشده است." %}<\/td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(id) {
+        if (confirm('{% trans "آیا از حذف این تراکنش اطمینان دارید؟" %}')) {
+            window.location.href = "{% url 'transactions:transaction_delete' 0 %}".replace('0', id);
+        }
+    }
+</script>
+{% endblock %}

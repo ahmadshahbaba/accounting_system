@@ -1,0 +1,119 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "سرمایه دکان" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{% trans "سرمایه کل انبار" %}</h6>
+                </div>
+                <div class="card-body">
+                    <!-- ردیف اول: سرمایه به تفکیک -->
+                    <div class="row">
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                <i class="fas fa-afghanistan"></i> {% trans "سرمایه به افغانی" %}
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ afghan_capital|floatformat:2 }} {% trans "افغانی" %}
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                <i class="fas fa-dollar-sign"></i> {% trans "سرمایه به دالر" %}
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ dollar_capital|floatformat:2 }} {% trans "دالر" %}
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                <i class="fas fa-chart-pie"></i> {% trans "سرمایه کل به دالر" %}
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ total_capital_usd|floatformat:2 }} {% trans "دالر" %}
+                                            </div>
+                                            <div class="small text-muted mt-2">
+                                                ({{ afghan_capital|floatformat:2 }} {% trans "افغانی" %} ÷ {{ exchange_rate|floatformat:2 }} + {{ dollar_capital|floatformat:2 }} دالر)
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-globe fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ردیف دوم: آمار کلی -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">{% trans "تعداد اقلام فعال" %}</h5>
+                                    <h2 class="text-primary">{{ product_count }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">{% trans "اقلام با موجودی کم" %}</h5>
+                                    <h2 class="{% if low_stock_items > 0 %}text-warning{% else %}text-success{% endif %}">
+                                        {{ low_stock_items }}
+                                    </h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- بخش توضیحات حذف شد -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+    .border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+    .border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+    .text-xs { font-size: 0.7rem; }
+    .text-gray-800 { color: #5a5c69!important; }
+    .text-gray-300 { color: #dddfeb!important; }
+    .bg-light { background-color: #f8f9fc !important; }
+</style>
+{% endblock %}

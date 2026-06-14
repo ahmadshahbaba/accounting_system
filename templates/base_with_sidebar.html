@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+{% load i18n static %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>{% block title %}{% trans "سیستم حسابداری فروشگاه" %}{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Vazir', 'Tahoma', 'Segoe UI', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+            font-size: 14px;
+            padding-top: 70px;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .top-navbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 60px;
+            background: linear-gradient(90deg, #1e2a3a 0%, #0f172a 100%);
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            color: white;
+        }
+        .store-name { font-size: 1.2rem; font-weight: 700; }
+        .top-nav-left { display: flex; align-items: center; gap: 15px; }
+        .admin-info { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 40px; }
+        .admin-avatar { width: 32px; height: 32px; background: #2c3e50; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .datetime { direction: ltr; background: rgba(0,0,0,0.2); padding: 5px 12px; border-radius: 40px; font-size: 0.8rem; }
+        .logout-btn { background-color: #dc2626; color: white; border: none; padding: 6px 16px; border-radius: 40px; display: flex; align-items: center; gap: 6px; }
+        .logout-btn:hover { background-color: #b91c1c; }
+        
+        /* دکمه‌های میانبر */
+        .shortcut-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            padding: 5px 14px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        .shortcut-btn:hover {
+            background: rgba(255,255,255,0.25);
+            color: white;
+            transform: translateY(-1px);
+        }
+        .shortcut-btn i { font-size: 0.9rem; }
+        
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            right: 0;
+            height: calc(100vh - 60px);
+            width: 260px;
+            background: linear-gradient(180deg, #1e2a3a 0%, #0f172a 100%);
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: 0.3s;
+            border-left: 1px solid rgba(255,255,255,0.05);
+        }
+        .sidebar-header { padding: 15px 20px; font-size: 1.3rem; font-weight: 600; border-bottom: 1px solid #2d3e50; text-align: center; }
+        .sidebar .nav-link, .dropdown-toggle { 
+            color: #ecf0f1; 
+            padding: 8px 16px; 
+            border-radius: 10px; 
+            margin: 3px 8px; 
+            display: flex; 
+            align-items: center; 
+            cursor: pointer; 
+            text-decoration: none;
+        }
+        .sidebar .nav-link i, .dropdown-toggle i { width: 24px; margin-left: 8px; }
+        .sidebar .nav-link:hover, .dropdown-toggle:hover { background: rgba(255,255,255,0.1); transform: translateX(-5px); }
+        .submenu { list-style: none; padding-right: 30px; display: none; margin-bottom: 5px; }
+        .submenu li a { 
+            color: #ecf0f1; 
+            display: block; 
+            padding: 6px 16px; 
+            text-decoration: none; 
+            font-size: 0.85rem;
+            border-radius: 8px;
+        }
+        .submenu li a:hover { background: rgba(255,255,255,0.1); }
+        .submenu.show { display: block; }
+        
+        .content {
+            margin-right: 260px;
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+        .mobile-menu-btn {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 10px;
+            z-index: 1100;
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .sidebar { margin-right: -260px; }
+            .sidebar.show { margin-right: 0; }
+            .content { margin-right: 0; }
+            .mobile-menu-btn { display: block; }
+            .shortcut-btn { padding: 4px 8px; font-size: 0.7rem; }
+            .top-nav-left { gap: 8px; }
+        }
+
+        .logout-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .logout-modal-content {
+            background: white;
+            max-width: 400px;
+            width: 90%;
+            border-radius: 28px;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            padding: 25px 20px;
+            animation: fadeInUp 0.2s ease;
+        }
+        .logout-modal-icon {
+            width: 70px;
+            height: 70px;
+            background: #fee2e2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .logout-modal-icon i { font-size: 32px; color: #dc2626; }
+        .logout-modal h4 { font-size: 1.5rem; font-weight: 700; margin-bottom: 10px; }
+        .logout-modal p { color: #6c757d; margin-bottom: 25px; }
+        .logout-modal-buttons { display: flex; gap: 12px; justify-content: center; }
+        .btn-cancel { background: #e9ecef; color: #495057; border: none; padding: 8px 20px; border-radius: 40px; font-weight: 500; }
+        .btn-confirm { background: #dc2626; color: white; border: none; padding: 8px 20px; border-radius: 40px; font-weight: 500; }
+        .btn-confirm:hover, .btn-cancel:hover { transform: scale(1.02); }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-navbar">
+        <div class="store-name"><i class="fas fa-store"></i> {% trans "فروشگاه مواد غذایی توفیق الهی" %}</div>
+        <div class="top-nav-left">
+            <a href="{% url 'sales:new_sale' %}" class="shortcut-btn" title="فروش جدید"><i class="fas fa-cash-register"></i><span> {% trans "فروش جدید" %}</span></a>
+            <a href="{% url 'transactions:transaction_create_in' %}" class="shortcut-btn" title="واریز"><i class="fas fa-plus-circle text-success"></i><span> {% trans "واریز" %}</span></a>
+            <a href="{% url 'transactions:transaction_create_out' %}" class="shortcut-btn" title="برداشت"><i class="fas fa-minus-circle text-danger"></i><span> {% trans "برداشت" %}</span></a>
+            
+            <!-- بخش انتخاب زبان حذف شد -->
+            
+            <div class="admin-info">
+                <div class="admin-avatar"><i class="fas fa-user"></i></div>
+                <span class="admin-name">{{ user.get_full_name|default:user.username }}</span>
+            </div>
+            <div class="datetime" id="current-datetime"></div>
+            <button type="button" class="logout-btn" id="logoutTrigger"><i class="fas fa-sign-out-alt"></i> <span>{% trans "خروج" %}</span></button>
+            <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">{% csrf_token %}</form>
+        </div>
+    </div>
+
+    <div id="logoutModal" class="logout-modal">
+        <div class="logout-modal-content">
+            <div class="logout-modal-icon"><i class="fas fa-question"></i></div>
+            <h4>{% trans "خروج از سیستم" %}</h4>
+            <p>{% trans "آیا مطمئن هستید که می‌خواهید از سیستم خارج شوید؟" %}</p>
+            <div class="logout-modal-buttons">
+                <button class="btn-cancel" id="cancelLogout">{% trans "خیر، انصراف" %}</button>
+                <button class="btn-confirm" id="confirmLogout">{% trans "بله، خارج شوم" %}</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="mobile-menu-btn" id="sidebarToggle"><i class="fas fa-bars"></i></button>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><i class="fas fa-chart-line"></i> {% trans "منوی اصلی" %}</div>
+        <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> {% trans "داشبورد" %}</a></li>
+            
+            <!-- اجناس -->
+            <li class="nav-item dropdown-toggle" data-menu="products"><i class="fas fa-boxes"></i> {% trans "اجناس" %}</li>
+            <ul class="submenu" id="productsSubmenu">
+                <li><a href="{% url 'inventory:product_create' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت جنس جدید" %}</a></li>
+                <li><a href="{% url 'inventory:product_list' %}"><i class="fas fa-list"></i> {% trans "لیست اجناس" %}</a></li>
+                <li><a href="{% url 'inventory:capital' %}"><i class="fas fa-chart-pie"></i> {% trans "سرمایه دکان" %}</a></li>
+            </ul>
+            
+            <!-- مشتریان -->
+            <li class="nav-item dropdown-toggle" data-menu="customers"><i class="fas fa-users"></i> {% trans "مشتریان" %}</li>
+            <ul class="submenu" id="customersSubmenu">
+                <li><a href="{% url 'customers:customer_create' %}"><i class="fas fa-user-plus"></i> {% trans "ثبت مشتری جدید" %}</a></li>
+                <li><a href="{% url 'customers:customer_list' %}"><i class="fas fa-list"></i> {% trans "لیست مشتریان" %}</a></li>
+            </ul>
+            
+            <!-- تهیه‌کنندگان -->
+            <li class="nav-item dropdown-toggle" data-menu="suppliers"><i class="fas fa-people-arrows"></i> {% trans "تهیه‌کنندگان" %}</li>
+            <ul class="submenu" id="suppliersSubmenu">
+                <li><a href="{% url 'suppliers:supplier_create' %}"><i class="fas fa-user-plus"></i> {% trans "ثبت تهیه‌کننده جدید" %}</a></li>
+                <li><a href="{% url 'suppliers:supplier_list' %}"><i class="fas fa-list"></i> {% trans "لیست تهیه‌کنندگان" %}</a></li>
+            </ul>
+            
+            <!-- اشخاص متفرقه -->
+            <li class="nav-item dropdown-toggle" data-menu="misc"><i class="fas fa-user-friends"></i> {% trans "اشخاص متفرقه" %}</li>
+            <ul class="submenu" id="miscSubmenu">
+                <li><a href="{% url 'misc_persons:misc_create' %}"><i class="fas fa-user-plus"></i> {% trans "ثبت شخص جدید" %}</a></li>
+                <li><a href="{% url 'misc_persons:misc_list' %}"><i class="fas fa-list"></i> {% trans "لیست اشخاص" %}</a></li>
+            </ul>
+            
+            <!-- فروشات -->
+            <li class="nav-item dropdown-toggle" data-menu="sales"><i class="fas fa-cash-register"></i> {% trans "فروشات" %}</li>
+            <ul class="submenu" id="salesSubmenu">
+                <li><a href="{% url 'sales:new_sale' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت فروش جدید" %}</a></li>
+                <li><a href="{% url 'sales:sale_list' %}"><i class="fas fa-list"></i> {% trans "لیست فروشات" %}</a></li>
+            </ul>
+            
+            <!-- خریداری -->
+            <li class="nav-item dropdown-toggle" data-menu="purchases"><i class="fas fa-truck"></i> {% trans "خریداری" %}</li>
+            <ul class="submenu" id="purchasesSubmenu">
+                <li><a href="{% url 'purchases:purchase_create' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت خرید جدید" %}</a></li>
+                <li><a href="{% url 'purchases:purchase_list' %}"><i class="fas fa-list"></i> {% trans "لیست خریداری" %}</a></li>
+            </ul>
+            
+            <!-- تراکنش -->
+            <li class="nav-item dropdown-toggle" data-menu="transactions"><i class="fas fa-exchange-alt"></i> {% trans "تراکنش" %}</li>
+            <ul class="submenu" id="transactionsSubmenu">
+                <li><a href="{% url 'transactions:transaction_create_in' %}"><i class="fas fa-plus-circle text-success"></i> {% trans "واریز" %}</a></li>
+                <li><a href="{% url 'transactions:transaction_create_out' %}"><i class="fas fa-minus-circle text-danger"></i> {% trans "برداشت" %}</a></li>
+                <li><a href="{% url 'transactions:transaction_list' %}"><i class="fas fa-list"></i> {% trans "لیست تراکنش" %}</a></li>
+            </ul>
+            
+            <!-- مصارف -->
+            <li class="nav-item dropdown-toggle" data-menu="expenses"><i class="fas fa-utensils"></i> {% trans "مصارف" %}</li>
+            <ul class="submenu" id="expensesSubmenu">
+                <li><a href="{% url 'expenses:expense_create' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت مصرف جدید" %}</a></li>
+                <li><a href="{% url 'expenses:expense_list' %}"><i class="fas fa-list"></i> {% trans "لیست مصارف" %}</a></li>
+            </ul>
+            
+            <!-- تنظیمات -->
+            <li class="nav-item dropdown-toggle" data-menu="settings"><i class="fas fa-cog"></i> {% trans "تنظیمات" %}</li>
+            <ul class="submenu" id="settingsSubmenu">
+                <li><a href="{% url 'settings_app:general_info' %}"><i class="fas fa-info-circle"></i> {% trans "معلومات عمومی" %}</a></li>
+                <li><a href="{% url 'settings_app:units_list' %}"><i class="fas fa-ruler"></i> {% trans "واحدات" %}</a></li>
+                <li><a href="{% url 'settings_app:managers_list' %}"><i class="fas fa-users-cog"></i> {% trans "لیست مدیران" %}</a></li>
+            </ul>
+        </ul>
+    </div>
+
+    <div class="content">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('current-datetime').innerText = now.toLocaleDateString('fa-IR', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        
+        const modal = document.getElementById('logoutModal');
+        const trigger = document.getElementById('logoutTrigger');
+        const cancelBtn = document.getElementById('cancelLogout');
+        const confirmBtn = document.getElementById('confirmLogout');
+        const logoutForm = document.getElementById('logout-form');
+        trigger.onclick = () => modal.style.display = 'flex';
+        cancelBtn.onclick = () => modal.style.display = 'none';
+        confirmBtn.onclick = () => logoutForm.submit();
+        window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
+        
+        document.getElementById('sidebarToggle').onclick = () => document.getElementById('sidebar').classList.toggle('show');
+        
+        const allSubmenus = {
+            products: document.getElementById('productsSubmenu'),
+            customers: document.getElementById('customersSubmenu'),
+            suppliers: document.getElementById('suppliersSubmenu'),
+            misc: document.getElementById('miscSubmenu'),
+            sales: document.getElementById('salesSubmenu'),
+            purchases: document.getElementById('purchasesSubmenu'),
+            transactions: document.getElementById('transactionsSubmenu'),
+            expenses: document.getElementById('expensesSubmenu'),
+            settings: document.getElementById('settingsSubmenu')
+        };
+        
+        function closeAllSubmenus(exceptMenu = null) {
+            for (const [key, submenu] of Object.entries(allSubmenus)) {
+                if (submenu && exceptMenu !== key) submenu.classList.remove('show');
+            }
+        }
+        
+        document.querySelectorAll('.dropdown-toggle').forEach(dropdown => {
+            dropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const menuKey = this.getAttribute('data-menu');
+                const current = allSubmenus[menuKey];
+                if (current) {
+                    const isOpen = current.classList.contains('show');
+                    closeAllSubmenus();
+                    if (!isOpen) current.classList.add('show');
+                }
+            });
+        });
+        
+        for (const submenu of Object.values(allSubmenus)) {
+            if (submenu) {
+                submenu.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', e => e.stopPropagation());
+                });
+            }
+        }
+        
+        document.querySelectorAll('.sidebar .nav-link:not(.dropdown-toggle)').forEach(link => {
+            link.addEventListener('click', () => closeAllSubmenus());
+        });
+        
+        const currentPath = window.location.pathname;
+        const productsPaths = [
+            "{% url 'inventory:product_create' %}",
+            "{% url 'inventory:product_list' %}",
+            "{% url 'inventory:capital' %}"
+        ];
+        const customersPaths = [
+            "{% url 'customers:customer_create' %}",
+            "{% url 'customers:customer_list' %}"
+        ];
+        const suppliersPaths = [
+            "{% url 'suppliers:supplier_create' %}",
+            "{% url 'suppliers:supplier_list' %}"
+        ];
+        const miscPaths = [
+            "{% url 'misc_persons:misc_create' %}",
+            "{% url 'misc_persons:misc_list' %}"
+        ];
+        const salesPaths = [
+            "{% url 'sales:new_sale' %}",
+            "{% url 'sales:sale_list' %}"
+        ];
+        const purchasesPaths = [
+            "{% url 'purchases:purchase_create' %}",
+            "{% url 'purchases:purchase_list' %}"
+        ];
+        const transactionsPaths = [
+            "{% url 'transactions:transaction_create_in' %}",
+            "{% url 'transactions:transaction_create_out' %}",
+            "{% url 'transactions:transaction_list' %}"
+        ];
+        const expensesPaths = [
+            "{% url 'expenses:expense_create' %}",
+            "{% url 'expenses:expense_list' %}"
+        ];
+        const settingsPaths = [
+            "{% url 'settings_app:general_info' %}",
+            "{% url 'settings_app:units_list' %}",
+            "{% url 'settings_app:managers_list' %}"
+        ];
+        
+        if (productsPaths.includes(currentPath)) {
+            closeAllSubmenus('products');
+            if (allSubmenus.products) allSubmenus.products.classList.add('show');
+        } else if (customersPaths.includes(currentPath)) {
+            closeAllSubmenus('customers');
+            if (allSubmenus.customers) allSubmenus.customers.classList.add('show');
+        } else if (suppliersPaths.includes(currentPath)) {
+            closeAllSubmenus('suppliers');
+            if (allSubmenus.suppliers) allSubmenus.suppliers.classList.add('show');
+        } else if (miscPaths.includes(currentPath)) {
+            closeAllSubmenus('misc');
+            if (allSubmenus.misc) allSubmenus.misc.classList.add('show');
+        } else if (salesPaths.includes(currentPath)) {
+            closeAllSubmenus('sales');
+            if (allSubmenus.sales) allSubmenus.sales.classList.add('show');
+        } else if (purchasesPaths.includes(currentPath)) {
+            closeAllSubmenus('purchases');
+            if (allSubmenus.purchases) allSubmenus.purchases.classList.add('show');
+        } else if (transactionsPaths.includes(currentPath)) {
+            closeAllSubmenus('transactions');
+            if (allSubmenus.transactions) allSubmenus.transactions.classList.add('show');
+        } else if (expensesPaths.includes(currentPath)) {
+            closeAllSubmenus('expenses');
+            if (allSubmenus.expenses) allSubmenus.expenses.classList.add('show');
+        } else if (settingsPaths.includes(currentPath)) {
+            closeAllSubmenus('settings');
+            if (allSubmenus.settings) allSubmenus.settings.classList.add('show');
+        } else {
+            closeAllSubmenus();
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

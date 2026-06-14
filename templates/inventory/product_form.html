@@ -1,0 +1,97 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% if edit_mode %}{% trans "ویرایش جنس" %}{% else %}{% trans "ثبت جنس جدید" %}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 100px);">
+    <div class="card shadow mb-4" style="width:100%; max-width:700px;">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                {% if edit_mode %}{% trans "ویرایش جنس" %}{% else %}{% trans "فرم ثبت جنس جدید" %}{% endif %}
+            </h6>
+        </div>
+        <div class="card-body py-3">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "نام جنس" %}</label>
+                    <input type="text" name="name" class="form-control form-control-sm" 
+                           placeholder="{% trans 'نام جنس را وارد کنید' %}" 
+                           value="{% if edit_mode %}{{ product.name }}{% endif %}" required>
+                </div>
+                
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "کد جنس" %}</label>
+                    <input type="text" class="form-control form-control-sm" 
+                           value="{% if edit_mode %}{{ product.code }}{% else %}{{ new_code }}{% endif %}" disabled readonly>
+                    <input type="hidden" name="code" value="{% if edit_mode %}{{ product.code }}{% else %}{{ new_code }}{% endif %}">
+                    <small class="text-muted" style="font-size: 0.7rem;">کد به صورت خودکار تولید می‌شود و قابل تغییر نیست.</small>
+                </div>
+                
+                <div class="row g-2">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label small fw-bold">{% trans "واحد پول" %}</label>
+                        <select name="currency" class="form-select form-select-sm" required>
+                            {% for curr in currencies %}
+                            <option value="{{ curr.id }}" {% if edit_mode and product.currency.id == curr.id %}selected{% endif %}>
+                                {{ curr.name }} ({{ curr.symbol }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label small fw-bold">{% trans "واحد اندازه گیری" %}</label>
+                        <select name="unit" class="form-select form-select-sm" required>
+                            {% for unit in units %}
+                            <option value="{{ unit.id }}" {% if edit_mode and product.unit.id == unit.id %}selected{% endif %}>
+                                {{ unit.name }} {% if unit.symbol %}({{ unit.symbol }}){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row g-2">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label small fw-bold">{% trans "قیمت خرید" %}</label>
+                        <input type="number" step="0.01" name="purchase_price" class="form-control form-control-sm" 
+                               placeholder="{% trans 'قیمت خرید را وارد کنید' %}" 
+                               value="{% if edit_mode %}{{ product.purchase_price }}{% endif %}" required>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label small fw-bold">{% trans "قیمت فروش" %}</label>
+                        <input type="number" step="0.01" name="selling_price" class="form-control form-control-sm" 
+                               placeholder="{% trans 'قیمت فروش را وارد کنید' %}" 
+                               value="{% if edit_mode %}{{ product.selling_price }}{% endif %}" required>
+                    </div>
+                </div>
+                
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "موجودی انبار" %}</label>
+                    <input type="number" name="initial_stock" class="form-control form-control-sm" 
+                           placeholder="{% trans 'موجودی انبار را وارد کنید' %}" 
+                           value="{% if edit_mode %}{{ product.stock.quantity }}{% else %}0{% endif %}" min="0">
+                    <small class="text-muted" style="font-size: 0.7rem;">
+                        {% if edit_mode %}
+                            موجودی فعلی (در صورت تغییر، تراکنش ثبت می‌شود)
+                        {% else %}
+                            تعداد اولیه کالا در انبار (اختیاری)
+                        {% endif %}
+                    </small>
+                </div>
+                
+                <!-- فیلد توضیحات حذف شد -->
+                
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        {% if edit_mode %}{% trans "به‌روزرسانی" %}{% else %}{% trans "ذخیره جنس" %}{% endif %}
+                    </button>
+                    <a href="{% url 'inventory:product_list' %}" class="btn btn-secondary btn-sm px-4">{% trans "انصراف" %}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

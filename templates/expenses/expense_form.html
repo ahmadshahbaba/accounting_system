@@ -1,0 +1,68 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "ثبت مصرف جدید" %}{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 100px);">
+    <div class="card shadow mb-4" style="width:100%; max-width:700px;">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "فرم ثبت مصرف جدید" %}</h6>
+        </div>
+        <div class="card-body py-3">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "تاریخ (شمسی)" %}</label>
+                    <input type="text" name="transaction_date" id="jalali_date" class="form-control form-control-sm" value="{{ today_jalali }}" readonly required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "نوع مصرف" %}</label>
+                    <select name="expense_type" class="form-select form-select-sm" required>
+                        <option value="rent">کرایه دوکان</option>
+                        <option value="electricity">بل برق</option>
+                        <option value="daily">مصارف روزانه</option>
+                        <option value="personal">مصارف شخصی</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "واحد پول" %}</label>
+                    <select name="currency" class="form-select form-select-sm" required>
+                        <option value="AFN">افغانی</option>
+                        <option value="USD">دالر</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "مبلغ" %}</label>
+                    <input type="number" step="0.01" name="amount" class="form-control form-control-sm" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">{% trans "توضیحات (اختیاری)" %}</label>
+                    <textarea name="description" class="form-control form-control-sm" rows="2"></textarea>
+                </div>
+                <div class="d-flex justify-content-between mt-3">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">{% trans "ثبت مصرف" %}</button>
+                    <a href="{% url 'expenses:expense_list' %}" class="btn btn-secondary btn-sm px-4">{% trans "انصراف" %}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css"/>
+<script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
+<script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $("#jalali_date").pDatepicker({
+            format: 'YYYY/MM/DD',
+            initialValue: true,
+            calendarType: 'persian',
+            observer: true,
+            persianDigits: true,
+            monthNames: ['حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله', 'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت']
+        });
+    });
+</script>
+{% endblock %}

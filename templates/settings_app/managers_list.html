@@ -1,0 +1,46 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "لیست مدیران" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">مدیران سیستم</h6>
+        </div>
+        <div class="card-body">
+            <a href="{% url 'settings_app:manager_add' %}" class="btn btn-success mb-3">➕ افزودن مدیر جدید</a>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center">
+                    <thead class="table-light">
+                        <tr>
+                            <th>نام کاربری</th>
+                            <th>نام و نام خانوادگی</th>
+                            <th>ایمیل</th>
+                            <th>دسترسی ابرمدیر</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for manager in managers %}
+                        <tr>
+                            <td>{{ manager.username }} </td>
+                            <td>{{ manager.get_full_name|default:"-" }} </td>
+                            <td>{{ manager.email|default:"-" }} </td>
+                            <td>{% if manager.is_superuser %}✓{% else %}-{% endif %} </td>
+                            <td>
+                                <a href="{% url 'settings_app:manager_edit' manager.id %}" class="btn btn-sm btn-primary">ویرایش</a>
+                                <a href="{% url 'settings_app:manager_delete' manager.id %}" class="btn btn-sm btn-danger" onclick="return confirm('حذف شود؟')">حذف</a>
+                             </td>
+                         </tr>
+                        {% empty %}
+                        <tr><td colspan="5">هیچ مدیری یافت نشد.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "معلومات عمومی" %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">اطلاعات فروشگاه</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="update_shop_info" value="1">
+                <div class="mb-3">
+                    <label>نام فروشگاه</label>
+                    <input type="text" name="shop_name" class="form-control" value="{{ shop_info.shop_name }}">
+                </div>
+                <div class="mb-3">
+                    <label>آدرس</label>
+                    <textarea name="address" class="form-control">{{ shop_info.address }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label>شماره تماس</label>
+                    <input type="text" name="phone" class="form-control" value="{{ shop_info.phone }}">
+                </div>
+                <div class="mb-3">
+                    <label>ایمیل</label>
+                    <input type="email" name="email" class="form-control" value="{{ shop_info.email }}">
+                </div>
+                <div class="mb-3">
+                    <label>متن پایانی فاکتور</label>
+                    <textarea name="footer_text" class="form-control">{{ shop_info.footer_text }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">ذخیره اطلاعات</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">تغییر نام کاربری</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="change_username" value="1">
+                <div class="mb-3">
+                    <label>نام کاربری جدید</label>
+                    <input type="text" name="new_username" class="form-control" value="{{ user.username }}" required>
+                </div>
+                <button type="submit" class="btn btn-warning">تغییر نام کاربری</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">تغییر رمز عبور</h6>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="change_password" value="1">
+                {% for field in password_form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field.errors }}
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-danger">تغییر رمز عبور</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

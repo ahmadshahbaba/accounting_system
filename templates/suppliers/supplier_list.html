@@ -1,0 +1,99 @@
+{% extends 'base_with_sidebar.html' %}
+{% load i18n %}
+{% load jcal %}
+
+{% block title %}{% trans "لیست تهیه‌کنندگان" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">{% trans "لیست تهیه‌کنندگان" %}</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="mb-4">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">{% trans "نام تهیه‌کننده" %}</label>
+                        <input type="text" name="name" class="form-control form-control-sm" value="{{ request.GET.name|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">{% trans "شماره تماس" %}</label>
+                        <input type="text" name="phone" class="form-control form-control-sm" value="{{ request.GET.phone|default:'' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">{% trans "واحد پول" %}</label>
+                        <select name="currency" class="form-select form-select-sm">
+                            <option value="">همه</option>
+                            {% for curr in currencies %}
+                            <option value="{{ curr.id }}" {% if request.GET.currency == curr.id|stringformat:"s" %}selected{% endif %}>{{ curr.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fas fa-search"></i> {% trans "جستجو" %}</button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12 text-center">
+                        <a href="{% url 'suppliers:supplier_list' %}" class="btn btn-secondary btn-sm">{% trans "پاک کردن فیلترها" %}</a>
+                    </div>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover text-center">
+                    <thead>
+                        <tr>
+                            <th>{% trans "ردیف" %}</th>
+                            <th>{% trans "نام تهیه‌کننده" %}</th>
+                            <th>{% trans "شماره تماس" %}</th>
+                            <th>{% trans "واحد پول" %}</th>
+                            <th>{% trans "آدرس" %}</th>
+                            <th>{% trans "بیلانس" %}</th>
+                            <th>{% trans "عملیات" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for supplier in suppliers %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <a href="{% url 'suppliers:supplier_transactions' supplier.id %}" style="color:#4e73df; text-decoration:none;">
+                                    {{ supplier.name }}
+                                </a>
+                            </td>
+                            <td>{{ supplier.phone|default:"-" }}</td>
+                            <td>{{ supplier.currency.name }} ({{ supplier.currency.symbol }})</td>
+                            <td>{{ supplier.address|default:"-" }}</td>
+                            <td>
+                                {% if supplier.balance > 0 %}
+                                    <span class="text-success fw-bold">{{ supplier.balance|floatformat:2 }}</span>
+                                {% elif supplier.balance < 0 %}
+                                    <span class="text-danger fw-bold">{{ supplier.balance|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="text-primary fw-bold">0</span>
+                                {% endif %}
+                             </td>
+                            <td>
+                                <a href="{% url 'suppliers:supplier_edit' supplier.id %}" class="btn btn-sm btn-primary"><i class="fas fa-edit"></i> {% trans "ویرایش" %}</a>
+                                <a href="#" onclick="confirmDelete({{ supplier.id }})" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> {% trans "حذف" %}</a>
+                             </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" class="text-center">{% trans "هیچ تهیه‌کننده‌ای یافت نشد." %}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function confirmDelete(id) {
+        if (confirm('{% trans "آیا از حذف این تهیه‌کننده اطمینان دارید؟" %}')) {
+            window.location.href = "{% url 'suppliers:supplier_delete' 0 %}".replace('0', id);
+        }
+    }
+</script>
+{% endblock %}
