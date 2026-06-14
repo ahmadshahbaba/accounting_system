@@ -4,43 +4,58 @@
 {% block title %}{% if manager %}{% trans "ویرایش مدیر" %}{% else %}{% trans "افزودن مدیر جدید" %}{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container d-flex justify-content-center align-items-center">
-    <div class="card shadow w-50">
+<div class="container">
+    <div class="card shadow mb-4">
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">
-                {% if manager %}ویرایش مدیر{% else %}افزودن مدیر جدید{% endif %}
+                {% if manager %}{% trans "ویرایش مدیر" %}{% else %}{% trans "افزودن مدیر جدید" %}{% endif %}
             </h6>
         </div>
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}
                 <div class="mb-3">
-                    <label>نام کاربری</label>
+                    <label class="form-label">نام کاربری</label>
                     <input type="text" name="username" class="form-control" value="{{ manager.username|default:'' }}" required>
                 </div>
                 <div class="mb-3">
-                    <label>رمز عبور</label>
+                    <label class="form-label">رمز عبور</label>
                     <input type="password" name="password" class="form-control" {% if not manager %}required{% endif %}>
                     {% if manager %}<small class="text-muted">در صورت تمایل به تغییر رمز، وارد کنید.</small>{% endif %}
                 </div>
                 <div class="mb-3">
-                    <label>ایمیل</label>
+                    <label class="form-label">ایمیل</label>
                     <input type="email" name="email" class="form-control" value="{{ manager.email|default:'' }}">
                 </div>
                 <div class="mb-3">
-                    <label>نام</label>
+                    <label class="form-label">نام</label>
                     <input type="text" name="first_name" class="form-control" value="{{ manager.first_name|default:'' }}">
                 </div>
                 <div class="mb-3">
-                    <label>نام خانوادگی</label>
+                    <label class="form-label">نام خانوادگی</label>
                     <input type="text" name="last_name" class="form-control" value="{{ manager.last_name|default:'' }}">
                 </div>
                 <div class="mb-3 form-check">
                     <input type="checkbox" name="is_superuser" class="form-check-input" {% if manager.is_superuser %}checked{% endif %}>
                     <label class="form-check-label">دسترسی ابرمدیر (همه مجوزها)</label>
                 </div>
-                <button type="submit" class="btn btn-primary">ذخیره</button>
-                <a href="{% url 'settings_app:managers_list' %}" class="btn btn-secondary">انصراف</a>
+
+                <hr>
+                <h6 class="mb-3">دسترسی به بخش‌ها (مدیریت کامل)</h6>
+                <div class="row">
+                    {% for section_key, section in sections.items %}
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check">
+                                <input type="checkbox" name="perm_{{ section_key }}" id="perm_{{ section_key }}" class="form-check-input"
+                                    {% if section_key in allowed_sections %}checked{% endif %}>
+                                <label class="form-check-label" for="perm_{{ section_key }}">{{ section_key }}</label>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">{% if manager %}به‌روزرسانی{% else %}ذخیره{% endif %}</button>
+                <a href="{% url 'settings_app:managers_list' %}" class="btn btn-secondary mt-3">انصراف</a>
             </form>
         </div>
     </div>

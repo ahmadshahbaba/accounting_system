@@ -1,13 +1,67 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Permission
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
+from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from .models import ShopInfo, UnitOfMeasure, Currency
 
-# ========== معلومات عمومی ==========
+# ==================== تعریف بخش‌ها و مجوزها برای مدیران ====================
+SECTIONS = {
+    'اجناس': {
+        'app_label': 'inventory',
+        'models': ['product', 'stock', 'category', 'transaction'],
+    },
+    'مشتریان': {
+        'app_label': 'customers',
+        'models': ['customer'],
+    },
+    'فروشات': {
+        'app_label': 'sales',
+        'models': ['sale', 'saleitem'],
+    },
+    'خریداری': {
+        'app_label': 'purchases',
+        'models': ['purchaseinvoice', 'purchaseitem'],
+    },
+    'تهیه‌کنندگان': {
+        'app_label': 'suppliers',
+        'models': ['supplier'],
+    },
+    'اشخاص متفرقه': {
+        'app_label': 'misc_persons',
+        'models': ['miscperson'],
+    },
+    'تراکنش': {
+        'app_label': 'transactions',
+        'models': ['financialtransaction'],
+    },
+    'مصارف': {
+        'app_label': 'expenses',
+        'models': ['generalexpense'],
+    },
+}
+
+def get_all_permissions_for_section(section_key):
+    """بازگرداندن تمام مجوزهای (view, add, change, delete) برای مدل‌های یک بخش"""
+    section = SECTIONS[section_key]
+    app_label = section['app_label']
+    perms = []
+    for model_name in section['models']:
+        for action in ['view', 'add', 'change', 'delete']:
+            codename = f'{action}_{model_name}'
+            try:
+                perm = Permission.objects.get(content_type__app_label=app_label, codename=codename)
+                perms.append(perm)
+            except Permission.DoesNotExist:
+                continue
+    return perms
+
+
+# ==================== معلومات عمومی ====================
 @login_required
 def general_info(request):
     shop_info, created = ShopInfo.objects.get_or_create(pk=1)
@@ -49,7 +103,8 @@ def general_info(request):
         'password_form': password_form,
     })
 
-# ========== مدیریت واحدها ==========
+
+# ==================== مدیریت واحدها (واحدهای اندازه‌گیری و ارزها) ====================
 @login_required
 def units_list(request):
     units = UnitOfMeasure.objects.all()
@@ -114,14 +169,19 @@ def currency_delete(request, pk):
     messages.success(request, 'واحد پول حذف شد.')
     return redirect('settings_app:units_list')
 
-# ========== مدیریت مدیران ==========
+
+# ==================== مدیریت مدیران با چک‌باکس بخش‌ها ====================
 @login_required
 def managers_list(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied("شما دسترسی به این بخش ندارید.")
     managers = User.objects.filter(is_staff=True).order_by('-is_superuser', 'username')
     return render(request, 'settings_app/managers_list.html', {'managers': managers})
 
 @login_required
 def manager_add(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied("شما دسترسی به این بخش ندارید.")
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -133,8 +193,10 @@ def manager_add(request):
 
         if User.objects.filter(username=username).exists():
             messages.error(request, 'این نام کاربری قبلاً ثبت شده است.')
-        else:
-            User.objects.create_user(
+            return redirect('settings_app:manager_add')
+
+        with transaction.atomic():
+            user = User.objects.create_user(
                 username=username,
                 password=password,
                 email=email,
@@ -143,29 +205,67 @@ def manager_add(request):
                 is_staff=is_staff,
                 is_superuser=is_superuser
             )
-            messages.success(request, f'مدیر {username} با موفقیت اضافه شد.')
+            if not is_superuser:
+                for section_key in SECTIONS.keys():
+                    if request.POST.get(f'perm_{section_key}'):
+                        perms = get_all_permissions_for_section(section_key)
+                        user.user_permissions.add(*perms)
+        messages.success(request, f'مدیر {username} با موفقیت اضافه شد.')
         return redirect('settings_app:managers_list')
-    return render(request, 'settings_app/manager_form.html')
+    return render(request, 'settings_app/manager_form.html', {'sections': SECTIONS})
 
 @login_required
 def manager_edit(request, pk):
+    if not request.user.is_superuser:
+        raise PermissionDenied("شما دسترسی به این بخش ندارید.")
     user = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
         user.username = request.POST.get('username')
         user.email = request.POST.get('email')
         user.first_name = request.POST.get('first_name')
         user.last_name = request.POST.get('last_name')
-        user.is_superuser = request.POST.get('is_superuser') == 'on'
+        is_superuser = request.POST.get('is_superuser') == 'on'
+        user.is_superuser = is_superuser
         password = request.POST.get('password')
         if password:
-            user.password = make_password(password)
+            user.set_password(password)
         user.save()
-        messages.success(request, 'اطلاعات مدیر به‌روز شد.')
+
+        if not is_superuser:
+            all_perms = []
+            for section_key in SECTIONS.keys():
+                all_perms.extend(get_all_permissions_for_section(section_key))
+            user.user_permissions.remove(*all_perms)
+            for section_key in SECTIONS.keys():
+                if request.POST.get(f'perm_{section_key}'):
+                    perms = get_all_permissions_for_section(section_key)
+                    user.user_permissions.add(*perms)
+        else:
+            all_perms = []
+            for section_key in SECTIONS.keys():
+                all_perms.extend(get_all_permissions_for_section(section_key))
+            user.user_permissions.remove(*all_perms)
+
+        messages.success(request, f'مدیر {user.username} با موفقیت ویرایش شد.')
         return redirect('settings_app:managers_list')
-    return render(request, 'settings_app/manager_form.html', {'manager': user})
+
+    allowed_sections = []
+    if not user.is_superuser:
+        for section_key in SECTIONS.keys():
+            perms = get_all_permissions_for_section(section_key)
+            if user.has_perms([p.codename for p in perms]):
+                allowed_sections.append(section_key)
+
+    return render(request, 'settings_app/manager_form.html', {
+        'manager': user,
+        'sections': SECTIONS,
+        'allowed_sections': allowed_sections,
+    })
 
 @login_required
 def manager_delete(request, pk):
+    if not request.user.is_superuser:
+        raise PermissionDenied("شما دسترسی به این بخش ندارید.")
     user = get_object_or_404(User, pk=pk)
     if user == request.user:
         messages.error(request, 'شما نمی‌توانید خودتان را حذف کنید.')
