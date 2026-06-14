@@ -15,9 +15,13 @@ SECRET_KEY = 'django-insecure-YourSecretKeyHere123!@#$%^&*()'
 DEBUG = False
 
 # 🌐 میزبان‌های مجاز (دامنه خود را اینجا وارد کن)
-ALLOWED_HOSTS = ['*']  # برای تست می‌توانید '*' بگذارید، بعداً محدود کنید
+ALLOWED_HOSTS = ['*']
 
-# اپلیکیشن‌های نصب شده
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-c0c10.up.railway.app',
+]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -123,3 +127,12 @@ LOGOUT_REDIRECT_URL = '/login/'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True   # با بستن مرورگر، کاربر خارج می‌شود
 SESSION_COOKIE_AGE = 1209600
 SESSION_SAVE_EVERY_REQUEST = False
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.railway.app',
+    'https://web-production-c0c10.up.railway.app'
+]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
