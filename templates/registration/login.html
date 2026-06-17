@@ -86,6 +86,18 @@
             justify-content: center;
             margin-bottom: 15px;
         }
+        /* استایل جدید برای متن توسعه‌دهنده */
+        .developer-credit {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #aaa !important;  /* کم‌رنگ */
+            pointer-events: none;     /* غیرقابل کلیک */
+            user-select: none;        /* جلوگیری از انتخاب متن */
+        }
+        .developer-credit i {
+            margin-left: 5px;
+        }
         @media (max-width: 480px) { .login-body { padding: 25px 20px; } }
     </style>
 </head>
@@ -122,8 +134,9 @@
                 <button type="submit" class="btn btn-primary btn-login"><i class="fas fa-sign-in-alt"></i> ورود به سیستم</button>
                 <input type="hidden" name="next" value="{{ next }}">
             </form>
-            <div class="forgot-link">
-                <a href="#">توسعه یافته توسط مهدی رحمانی</a>
+            <!-- متن توسعه‌دهنده با آیکون و کم‌رنگ -->
+            <div class="developer-credit">
+                <i class="fas fa-code"></i> توسعه یافته توسط مهدی رحمانی
             </div>
         </div>
     </div>

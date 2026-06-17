@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db import transaction, models
 from django.utils import timezone
 from django.http import JsonResponse
@@ -12,6 +13,7 @@ from django.db.models import Sum, F
 
 from .models import Product, Category, Stock, Transaction
 from sales.models import Sale, SaleItem
+from purchases.models import PurchaseItem
 from settings_app.models import UnitOfMeasure, Currency
 
 # ==================== نرخ ارز (با fallback) ====================
@@ -33,29 +35,21 @@ def get_usd_afn_rate():
                 sell = Decimal(sell_text.replace(',', '').replace(' ', ''))
                 return buy, sell
         return Decimal('64.35'), Decimal('64.40')
-    except Exception as e:
-        print(f"خطا در دریافت نرخ ارز: {e}")
+    except:
         return Decimal('64.35'), Decimal('64.40')
 
 def get_exchange_rate_api(request):
     buy, sell = get_usd_afn_rate()
-    return JsonResponse({
-        'buy': float(buy),
-        'sell': float(sell),
-        'updated_at': timezone.now().isoformat()
-    })
+    return JsonResponse({'buy': float(buy), 'sell': float(sell), 'updated_at': timezone.now().isoformat()})
 
-# ==================== داشبورد (با نام ماه‌های افغانی) ====================
+# ==================== داشبورد ====================
 @login_required
 def dashboard(request):
-    # ---- کارت‌ها ----
     total_products = Product.objects.filter(is_active=True).count()
     low_stocks = Stock.objects.filter(quantity__lte=F('minimum_threshold')).count()
     total_categories = Category.objects.count()
     total_inventory_value = sum((s.product.purchase_price * s.quantity) for s in Stock.objects.all())
     usd_buy, usd_sell = get_usd_afn_rate()
-
-    # فروش و سود امروز
     today = timezone.now().date()
     today_sales = Sale.objects.filter(transaction_date=today)
     total_sales_today = sum(sale.total_amount for sale in today_sales)
@@ -64,15 +58,10 @@ def dashboard(request):
         for item in sale.items.all():
             purchase_price = item.product.purchase_price
             profit_today += (item.unit_price - purchase_price) * item.quantity
-
-    # ---- فروش ماهانه (۱۲ ماه شمسی جاری با نام‌های افغانی) ----
     now_jalali = jdatetime.date.today()
     current_jyear = now_jalali.year
-    # نام ماه‌های افغانی
-    afghan_months = [
-        'حمل', 'ثور', 'جوزا', 'سرطان', 'اسد', 'سنبله',
-        'میزان', 'عقرب', 'قوس', 'جدی', 'دلو', 'حوت'
-    ]
+    persian_months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+                      'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
     monthly_sales = []
     for month in range(1, 13):
         start_jalali = jdatetime.date(current_jyear, month, 1)
@@ -82,12 +71,8 @@ def dashboard(request):
             end_jalali = jdatetime.date(current_jyear, month+1, 1) - jdatetime.timedelta(days=1)
         start_greg = start_jalali.togregorian()
         end_greg = end_jalali.togregorian()
-        total = Sale.objects.filter(
-            transaction_date__gte=start_greg,
-            transaction_date__lte=end_greg
-        ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+        total = Sale.objects.filter(transaction_date__gte=start_greg, transaction_date__lte=end_greg).aggregate(total=Sum('total_amount'))['total'] or 0
         monthly_sales.append(float(total))
-
     context = {
         'total_products': total_products,
         'low_stocks': low_stocks,
@@ -97,7 +82,7 @@ def dashboard(request):
         'usd_sell': usd_sell,
         'total_sales_today': total_sales_today,
         'profit_today': profit_today,
-        'months': afghan_months,  # نام ماه‌های افغانی
+        'months': persian_months,
         'monthly_sales': monthly_sales,
     }
     return render(request, 'inventory/dashboard.html', context)
@@ -112,6 +97,8 @@ def product_list(request):
 
 @login_required
 def product_create(request):
+    if request.user.groups.filter(name='حسابدار').exists():
+        raise PermissionDenied("شما مجوز ایجاد جنس جدید ندارید.")
     last_product = Product.objects.all().order_by('-code').first()
     new_code = last_product.code + 1 if last_product else 101
     if request.method == 'POST':
@@ -126,17 +113,15 @@ def product_create(request):
         unit = get_object_or_404(UnitOfMeasure, id=unit_id)
         with transaction.atomic():
             product = Product.objects.create(
-                name=name, code=new_code, category=None,
-                currency=currency, purchase_price=purchase_price,
-                selling_price=selling_price, unit=unit,
-                description=description, is_active=True
+                name=name, code=new_code, category=None, currency=currency,
+                purchase_price=purchase_price, selling_price=selling_price,
+                unit=unit, description=description, is_active=True
             )
             Stock.objects.create(product=product, quantity=initial_stock)
             if initial_stock > 0:
                 Transaction.objects.create(
-                    product=product, transaction_type='IN',
-                    quantity=initial_stock, price_at_time=purchase_price,
-                    description="موجودی اولیه هنگام ثبت جنس"
+                    product=product, transaction_type='IN', quantity=initial_stock,
+                    price_at_time=purchase_price, description="موجودی اولیه"
                 )
         messages.success(request, f'جنس {name} با کد {new_code} اضافه شد.')
         return redirect('inventory:product_list')
@@ -150,6 +135,8 @@ def product_create(request):
 
 @login_required
 def product_edit(request, pk):
+    if request.user.groups.filter(name='حسابدار').exists():
+        raise PermissionDenied("شما مجوز ویرایش ندارید.")
     product = get_object_or_404(Product, pk=pk)
     if request.method == 'POST':
         product.name = request.POST['name']
@@ -168,37 +155,59 @@ def product_edit(request, pk):
             if diff > 0:
                 Transaction.objects.create(
                     product=product, transaction_type='IN', quantity=diff,
-                    price_at_time=product.purchase_price,
-                    description="افزایش موجودی در ویرایش جنس"
+                    price_at_time=product.purchase_price, description="افزایش موجودی"
                 )
             elif diff < 0:
                 Transaction.objects.create(
                     product=product, transaction_type='OUT', quantity=-diff,
-                    price_at_time=product.purchase_price,
-                    description="کاهش موجودی در ویرایش جنس"
+                    price_at_time=product.purchase_price, description="کاهش موجودی"
                 )
         messages.success(request, f'جنس {product.name} ویرایش شد.')
         return redirect('inventory:product_list')
     units = UnitOfMeasure.objects.filter(is_active=True)
     currencies = Currency.objects.filter(is_active=True)
     return render(request, 'inventory/product_form.html', {
-        'product': product, 'edit_mode': True,
-        'new_code': product.code, 'units': units, 'currencies': currencies,
+        'product': product,
+        'edit_mode': True,
+        'new_code': product.code,
+        'units': units,
+        'currencies': currencies,
     })
 
 @login_required
 def product_delete(request, pk):
+    """
+    حذف جنس با مدیریت وابستگی‌ها و نمایش خطای مناسب
+    """
+    if request.user.groups.filter(name='حسابدار').exists():
+        raise PermissionDenied("شما مجوز حذف ندارید.")
+    
     product = get_object_or_404(Product, pk=pk)
     name = product.name
-    Transaction.objects.filter(product=product).delete()
-    Stock.objects.filter(product=product).delete()
-    product.delete()
-    messages.success(request, f'جنس {name} حذف شد.')
+    
+    try:
+        with transaction.atomic():
+            # حذف تراکنش‌های انبار
+            Transaction.objects.filter(product=product).delete()
+            # حذف موجودی
+            Stock.objects.filter(product=product).delete()
+            # حذف آیتم‌های فروش
+            SaleItem.objects.filter(product=product).delete()
+            # حذف آیتم‌های خرید
+            PurchaseItem.objects.filter(product=product).delete()
+            # حذف خود محصول
+            product.delete()
+        messages.success(request, f'جنس {name} با موفقیت حذف شد.')
+    except Exception as e:
+        messages.error(request, f'خطا در حذف جنس: {e}')
+    
     return redirect('inventory:product_list')
 
 # ==================== ورود و خروج کالا ====================
 @login_required
 def stock_in(request):
+    if request.user.groups.filter(name='حسابدار').exists():
+        raise PermissionDenied("شما مجوز ورود کالا ندارید.")
     if request.method == 'POST':
         product = get_object_or_404(Product, id=request.POST['product'])
         qty = int(request.POST['quantity'])
@@ -218,6 +227,8 @@ def stock_in(request):
 
 @login_required
 def stock_out(request):
+    if request.user.groups.filter(name='حسابدار').exists():
+        raise PermissionDenied("شما مجوز خروج کالا ندارید.")
     if request.method == 'POST':
         product = get_object_or_404(Product, id=request.POST['product'])
         qty = int(request.POST['quantity'])
