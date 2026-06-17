@@ -4,6 +4,7 @@ class ShopInfo(models.Model):
     shop_name = models.CharField(max_length=200, default="فروشگاه من", verbose_name="نام فروشگاه")
     address = models.TextField(blank=True, verbose_name="آدرس")
     phone = models.CharField(max_length=20, blank=True, verbose_name="شماره تماس")
+    whatsapp = models.CharField(max_length=20, blank=True, verbose_name="شماره واتساپ")  # ← فیلد جدید
     email = models.EmailField(blank=True, verbose_name="ایمیل")
     footer_text = models.TextField(blank=True, verbose_name="متن پایانی فاکتور")
     logo = models.ImageField(upload_to='logos/', blank=True, null=True, verbose_name="لوگو")
@@ -14,7 +15,6 @@ class ShopInfo(models.Model):
     class Meta:
         verbose_name = "اطلاعات فروشگاه"
         verbose_name_plural = "اطلاعات فروشگاه"
-
 
 class UnitOfMeasure(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="نام واحد")
@@ -27,7 +27,6 @@ class UnitOfMeasure(models.Model):
     class Meta:
         verbose_name = "واحد اندازه‌گیری"
         verbose_name_plural = "واحدهای اندازه‌گیری"
-
 
 class Currency(models.Model):
     code = models.CharField(max_length=3, unique=True, verbose_name="کد")

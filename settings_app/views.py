@@ -11,42 +11,17 @@ from .models import ShopInfo, UnitOfMeasure, Currency
 
 # ==================== تعریف بخش‌ها و مجوزها برای مدیران ====================
 SECTIONS = {
-    'اجناس': {
-        'app_label': 'inventory',
-        'models': ['product', 'stock', 'category', 'transaction'],
-    },
-    'مشتریان': {
-        'app_label': 'customers',
-        'models': ['customer'],
-    },
-    'فروشات': {
-        'app_label': 'sales',
-        'models': ['sale', 'saleitem'],
-    },
-    'خریداری': {
-        'app_label': 'purchases',
-        'models': ['purchaseinvoice', 'purchaseitem'],
-    },
-    'تهیه‌کنندگان': {
-        'app_label': 'suppliers',
-        'models': ['supplier'],
-    },
-    'اشخاص متفرقه': {
-        'app_label': 'misc_persons',
-        'models': ['miscperson'],
-    },
-    'تراکنش': {
-        'app_label': 'transactions',
-        'models': ['financialtransaction'],
-    },
-    'مصارف': {
-        'app_label': 'expenses',
-        'models': ['generalexpense'],
-    },
+    'اجناس': {'app_label': 'inventory', 'models': ['product', 'stock', 'category', 'transaction']},
+    'مشتریان': {'app_label': 'customers', 'models': ['customer']},
+    'فروشات': {'app_label': 'sales', 'models': ['sale', 'saleitem']},
+    'خریداری': {'app_label': 'purchases', 'models': ['purchaseinvoice', 'purchaseitem']},
+    'تهیه‌کنندگان': {'app_label': 'suppliers', 'models': ['supplier']},
+    'اشخاص متفرقه': {'app_label': 'misc_persons', 'models': ['miscperson']},
+    'تراکنش': {'app_label': 'transactions', 'models': ['financialtransaction']},
+    'مصارف': {'app_label': 'expenses', 'models': ['generalexpense']},
 }
 
 def get_all_permissions_for_section(section_key):
-    """بازگرداندن تمام مجوزهای (view, add, change, delete) برای مدل‌های یک بخش"""
     section = SECTIONS[section_key]
     app_label = section['app_label']
     perms = []
@@ -60,7 +35,6 @@ def get_all_permissions_for_section(section_key):
                 continue
     return perms
 
-
 # ==================== معلومات عمومی ====================
 @login_required
 def general_info(request):
@@ -72,6 +46,7 @@ def general_info(request):
             shop_info.shop_name = request.POST.get('shop_name')
             shop_info.address = request.POST.get('address')
             shop_info.phone = request.POST.get('phone')
+            shop_info.whatsapp = request.POST.get('whatsapp')  # ← اضافه شد
             shop_info.email = request.POST.get('email')
             shop_info.footer_text = request.POST.get('footer_text')
             shop_info.save()
@@ -84,7 +59,7 @@ def general_info(request):
                 update_session_auth_hash(request, user)
                 messages.success(request, 'رمز عبور با موفقیت تغییر کرد.')
             else:
-                messages.error(request, 'خطا در تغییر رمز عبور. لطفاً دوباره تلاش کنید.')
+                messages.error(request, 'خطا در تغییر رمز عبور.')
 
         elif 'change_username' in request.POST:
             new_username = request.POST.get('new_username')
@@ -93,7 +68,7 @@ def general_info(request):
             else:
                 request.user.username = new_username
                 request.user.save()
-                messages.success(request, 'نام کاربری با موفقیت تغییر کرد.')
+                messages.success(request, 'نام کاربری تغییر کرد.')
 
         return redirect('settings_app:general_info')
 
@@ -103,16 +78,12 @@ def general_info(request):
         'password_form': password_form,
     })
 
-
-# ==================== مدیریت واحدها (واحدهای اندازه‌گیری و ارزها) ====================
+# ==================== مدیریت واحدها ====================
 @login_required
 def units_list(request):
     units = UnitOfMeasure.objects.all()
     currencies = Currency.objects.all()
-    return render(request, 'settings_app/units_list.html', {
-        'units': units,
-        'currencies': currencies,
-    })
+    return render(request, 'settings_app/units_list.html', {'units': units, 'currencies': currencies})
 
 @login_required
 def unit_add(request):
@@ -169,8 +140,7 @@ def currency_delete(request, pk):
     messages.success(request, 'واحد پول حذف شد.')
     return redirect('settings_app:units_list')
 
-
-# ==================== مدیریت مدیران با چک‌باکس بخش‌ها ====================
+# ==================== مدیریت مدیران ====================
 @login_required
 def managers_list(request):
     if not request.user.is_superuser:
@@ -210,7 +180,7 @@ def manager_add(request):
                     if request.POST.get(f'perm_{section_key}'):
                         perms = get_all_permissions_for_section(section_key)
                         user.user_permissions.add(*perms)
-        messages.success(request, f'مدیر {username} با موفقیت اضافه شد.')
+        messages.success(request, f'مدیر {username} اضافه شد.')
         return redirect('settings_app:managers_list')
     return render(request, 'settings_app/manager_form.html', {'sections': SECTIONS})
 
@@ -246,7 +216,7 @@ def manager_edit(request, pk):
                 all_perms.extend(get_all_permissions_for_section(section_key))
             user.user_permissions.remove(*all_perms)
 
-        messages.success(request, f'مدیر {user.username} با موفقیت ویرایش شد.')
+        messages.success(request, f'مدیر {user.username} ویرایش شد.')
         return redirect('settings_app:managers_list')
 
     allowed_sections = []
