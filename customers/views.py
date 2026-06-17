@@ -1,28 +1,22 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.template.loader import get_template
 from decimal import Decimal
 from django.db import models
+from xhtml2pdf import pisa
 from .models import Customer
 from transactions.models import FinancialTransaction
 from sales.models import Sale
 from settings_app.models import Currency
 
 def calculate_customer_balance(customer):
-    """
-    محاسبه بیلانس مشتری:
-    بدهکار (debit) = فروش قرضی + برداشت‌ها (IN)
-    بستانکار (credit) = واریزها (OUT)
-    بیلانس = بستانکار - بدهکار
-    اگر منفی باشد = بدهکار (قرمز) ، اگر مثبت باشد = بستانکار (سبز)
-    """
-    # کل فروش‌های قرضی
     total_credit_sales = Sale.objects.filter(
         customer=customer,
         payment_method='CREDIT'
     ).aggregate(total=models.Sum('remaining_amount'))['total'] or Decimal('0')
 
-    # تراکنش‌های مالی (واریز/برداشت واقعی - بدون قرض)
     total_in = FinancialTransaction.objects.filter(
         person_type='CUSTOMER', 
         customer=customer, 
@@ -116,13 +110,11 @@ def customer_delete(request, pk):
 def customer_transactions(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
 
-    # تراکنش‌های مالی (واریز/برداشت واقعی - بدون قرض)
     financial_transactions = FinancialTransaction.objects.filter(
         person_type='CUSTOMER',
         customer=customer
     ).exclude(description__icontains='قرض').order_by('-date_created')
 
-    # فاکتورهای فروش قرضی
     sales = Sale.objects.filter(
         customer=customer,
         payment_method='CREDIT',
@@ -131,9 +123,8 @@ def customer_transactions(request, pk):
 
     transactions_list = []
 
-    # اضافه کردن تراکنش‌های مالی (واریز/برداشت واقعی)
     for ft in financial_transactions:
-        if ft.transaction_type == 'OUT':   # واریز = بستانکار
+        if ft.transaction_type == 'OUT':
             transactions_list.append({
                 'date': ft.date_created,
                 'type': 'واریز',
@@ -142,7 +133,7 @@ def customer_transactions(request, pk):
                 'credit': ft.amount,
                 'balance': None,
             })
-        else:  # IN = برداشت واقعی = بدهکار
+        else:
             transactions_list.append({
                 'date': ft.date_created,
                 'type': 'برداشت',
@@ -152,7 +143,6 @@ def customer_transactions(request, pk):
                 'balance': None,
             })
 
-    # اضافه کردن فاکتورهای فروش قرضی
     for sale in sales:
         transactions_list.append({
             'date': sale.date,
@@ -163,19 +153,90 @@ def customer_transactions(request, pk):
             'balance': None,
         })
 
-    # مرتب‌سازی بر اساس تاریخ (جدیدترین اول)
     transactions_list.sort(key=lambda x: x['date'], reverse=True)
 
-    # محاسبه مانده (بیلانس) ردیف به ردیف
     balance = Decimal('0')
     for item in transactions_list:
         if item['debit']:
-            balance += item['debit']       # بدهکار = افزایش بدهی
+            balance += item['debit']
         if item['credit']:
-            balance -= item['credit']      # بستانکار = کاهش بدهی
+            balance -= item['credit']
         item['balance'] = balance
 
     return render(request, 'customers/customer_transactions.html', {
         'customer': customer,
         'transactions': transactions_list,
     })
+
+@login_required
+def customer_transactions_pdf(request, pk):
+    customer = get_object_or_404(Customer, pk=pk)
+
+    financial_transactions = FinancialTransaction.objects.filter(
+        person_type='CUSTOMER',
+        customer=customer
+    ).exclude(description__icontains='قرض').order_by('-date_created')
+
+    sales = Sale.objects.filter(
+        customer=customer,
+        payment_method='CREDIT',
+        remaining_amount__gt=0
+    ).order_by('-date')
+
+    transactions_list = []
+
+    for ft in financial_transactions:
+        if ft.transaction_type == 'OUT':
+            transactions_list.append({
+                'date': ft.date_created,
+                'type': 'واریز',
+                'description': ft.description,
+                'debit': None,
+                'credit': ft.amount,
+                'balance': None,
+            })
+        else:
+            transactions_list.append({
+                'date': ft.date_created,
+                'type': 'برداشت',
+                'description': ft.description,
+                'debit': ft.amount,
+                'credit': None,
+                'balance': None,
+            })
+
+    for sale in sales:
+        transactions_list.append({
+            'date': sale.date,
+            'type': 'فروش قرضی',
+            'description': f'فاکتور {sale.invoice_number} - قرض',
+            'debit': sale.remaining_amount,
+            'credit': None,
+            'balance': None,
+        })
+
+    transactions_list.sort(key=lambda x: x['date'], reverse=True)
+
+    balance = Decimal('0')
+    for item in transactions_list:
+        if item['debit']:
+            balance += item['debit']
+        if item['credit']:
+            balance -= item['credit']
+        item['balance'] = balance
+
+    context = {
+        'customer': customer,
+        'transactions': transactions_list,
+    }
+
+    template = get_template('customers/customer_transactions_pdf.html')
+    html = template.render(context)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="transactions_{customer.name}_{customer.id}.pdf"'
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('خطا در تولید PDF', status=500)
+    return response

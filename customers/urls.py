@@ -8,5 +8,6 @@ urlpatterns = [
     path('add/', views.customer_create, name='customer_create'),
     path('edit/<int:pk>/', views.customer_edit, name='customer_edit'),
     path('delete/<int:pk>/', views.customer_delete, name='customer_delete'),
-    path('transactions/<int:pk>/', views.customer_transactions, name='customer_transactions'),  # <-- جدید
+    path('transactions/<int:pk>/', views.customer_transactions, name='customer_transactions'),
+    path('transactions-pdf/<int:pk>/', views.customer_transactions_pdf, name='customer_transactions_pdf'),
 ]
