@@ -9,11 +9,13 @@ from sales.models import Sale
 from settings_app.models import Currency
 
 def calculate_customer_balance(customer):
+    # فروش قرضی = بدهکار
     total_credit_sales = Sale.objects.filter(
         customer=customer,
         payment_method='CREDIT'
     ).aggregate(total=models.Sum('remaining_amount'))['total'] or Decimal('0')
 
+    # واریز (IN) = بستانکار
     total_in = FinancialTransaction.objects.filter(
         person_type='CUSTOMER', 
         customer=customer, 
@@ -22,6 +24,7 @@ def calculate_customer_balance(customer):
         total=models.Sum('amount')
     )['total'] or Decimal('0')
     
+    # برداشت (OUT) = بدهکار
     total_out = FinancialTransaction.objects.filter(
         person_type='CUSTOMER', 
         customer=customer, 
@@ -30,9 +33,9 @@ def calculate_customer_balance(customer):
         total=models.Sum('amount')
     )['total'] or Decimal('0')
 
-    debit = total_credit_sales + total_in
-    credit = total_out
-    balance = credit - debit
+    debit = total_credit_sales + total_out
+    credit = total_in
+    balance = debit - credit
     return balance
 
 @login_required
@@ -110,47 +113,55 @@ def customer_transactions(request, pk):
     financial_transactions = FinancialTransaction.objects.filter(
         person_type='CUSTOMER',
         customer=customer
-    ).exclude(description__icontains='قرض').order_by('-date_created')
+    ).exclude(description__icontains='قرض').order_by('date_created')
 
     sales = Sale.objects.filter(
         customer=customer,
         payment_method='CREDIT',
         remaining_amount__gt=0
-    ).order_by('-date')
+    ).order_by('date')
 
     transactions_list = []
+    total_debit = Decimal('0')
+    total_credit = Decimal('0')
 
     for ft in financial_transactions:
-        if ft.transaction_type == 'OUT':
+        if ft.transaction_type == 'OUT':  # برداشت = بدهکار
+            amount = ft.amount
+            total_debit += amount
+            transactions_list.append({
+                'date': ft.date_created,
+                'type': 'برداشت',
+                'description': ft.description,
+                'debit': amount,
+                'credit': None,
+                'balance': None,
+            })
+        else:  # IN = واریز = بستانکار
+            amount = ft.amount
+            total_credit += amount
             transactions_list.append({
                 'date': ft.date_created,
                 'type': 'واریز',
                 'description': ft.description,
                 'debit': None,
-                'credit': ft.amount,
-                'balance': None,
-            })
-        else:
-            transactions_list.append({
-                'date': ft.date_created,
-                'type': 'برداشت',
-                'description': ft.description,
-                'debit': ft.amount,
-                'credit': None,
+                'credit': amount,
                 'balance': None,
             })
 
     for sale in sales:
+        amount = sale.remaining_amount
+        total_debit += amount
         transactions_list.append({
             'date': sale.date,
             'type': 'فروش قرضی',
             'description': f'فاکتور {sale.invoice_number} - قرض',
-            'debit': sale.remaining_amount,
+            'debit': amount,
             'credit': None,
             'balance': None,
         })
 
-    transactions_list.sort(key=lambda x: x['date'], reverse=True)
+    transactions_list.sort(key=lambda x: x['date'])
 
     balance = Decimal('0')
     for item in transactions_list:
@@ -163,4 +174,6 @@ def customer_transactions(request, pk):
     return render(request, 'customers/customer_transactions.html', {
         'customer': customer,
         'transactions': transactions_list,
+        'total_debit': total_debit,
+        'total_credit': total_credit,
     })

@@ -2,18 +2,30 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from decimal import Decimal
+from django.db import models
 from .models import MiscPerson
 from transactions.models import FinancialTransaction
 from settings_app.models import Currency
 
 def calculate_misc_balance(person):
-    financial_transactions = FinancialTransaction.objects.filter(
-        person_type='MISC',
-        misc_person=person
-    )
-    total_debit = sum(ft.amount for ft in financial_transactions if ft.transaction_type == 'IN')
-    total_credit = sum(ft.amount for ft in financial_transactions if ft.transaction_type == 'OUT')
-    return total_debit - total_credit
+    # واریز به شخص (IN) = بستانکار
+    total_in = FinancialTransaction.objects.filter(
+        person_type='MISC', misc_person=person, transaction_type='IN'
+    ).exclude(description__icontains='قرض').aggregate(
+        total=models.Sum('amount')
+    )['total'] or Decimal('0')
+    
+    # برداشت از شخص (OUT) = بدهکار
+    total_out = FinancialTransaction.objects.filter(
+        person_type='MISC', misc_person=person, transaction_type='OUT'
+    ).exclude(description__icontains='قرض').aggregate(
+        total=models.Sum('amount')
+    )['total'] or Decimal('0')
+
+    debit = total_out
+    credit = total_in
+    balance = debit - credit
+    return balance
 
 @login_required
 def misc_list(request):
@@ -46,15 +58,9 @@ def misc_create(request):
         currency_id = request.POST.get('currency')
         address = request.POST.get('address', '')
         currency = get_object_or_404(Currency, id=currency_id)
-        MiscPerson.objects.create(
-            name=name,
-            phone=phone,
-            currency=currency,
-            address=address
-        )
+        MiscPerson.objects.create(name=name, phone=phone, currency=currency, address=address)
         messages.success(request, f'شخص متفرقه {name} با موفقیت اضافه شد.')
         return redirect('misc_persons:misc_list')
-
     currencies = Currency.objects.filter(is_active=True)
     return render(request, 'misc_persons/misc_form.html', {'currencies': currencies})
 
@@ -69,7 +75,6 @@ def misc_edit(request, pk):
         person.save()
         messages.success(request, f'شخص متفرقه {person.name} با موفقیت ویرایش شد.')
         return redirect('misc_persons:misc_list')
-
     currencies = Currency.objects.filter(is_active=True)
     return render(request, 'misc_persons/misc_form.html', {
         'person': person,
@@ -88,23 +93,41 @@ def misc_delete(request, pk):
 @login_required
 def misc_transactions(request, pk):
     person = get_object_or_404(MiscPerson, pk=pk)
+
     financial_transactions = FinancialTransaction.objects.filter(
         person_type='MISC',
         misc_person=person
-    ).order_by('-date_created')
+    ).exclude(description__icontains='قرض').order_by('date_created')
 
     transactions_list = []
-    for ft in financial_transactions:
-        transactions_list.append({
-            'date': ft.date_created,
-            'type': 'واریز' if ft.transaction_type == 'IN' else 'برداشت',
-            'description': ft.description,
-            'debit': ft.amount if ft.transaction_type == 'IN' else None,
-            'credit': ft.amount if ft.transaction_type == 'OUT' else None,
-            'balance': None,
-        })
+    total_debit = Decimal('0')
+    total_credit = Decimal('0')
 
-    transactions_list.sort(key=lambda x: x['date'], reverse=True)
+    for ft in financial_transactions:
+        if ft.transaction_type == 'OUT':  # برداشت = بدهکار
+            amount = ft.amount
+            total_debit += amount
+            transactions_list.append({
+                'date': ft.date_created,
+                'type': 'برداشت',
+                'description': ft.description,
+                'debit': amount,
+                'credit': None,
+                'balance': None,
+            })
+        else:  # IN = واریز = بستانکار
+            amount = ft.amount
+            total_credit += amount
+            transactions_list.append({
+                'date': ft.date_created,
+                'type': 'واریز',
+                'description': ft.description,
+                'debit': None,
+                'credit': amount,
+                'balance': None,
+            })
+
+    transactions_list.sort(key=lambda x: x['date'])
 
     balance = Decimal('0')
     for item in transactions_list:
@@ -117,4 +140,6 @@ def misc_transactions(request, pk):
     return render(request, 'misc_persons/misc_transactions.html', {
         'person': person,
         'transactions': transactions_list,
+        'total_debit': total_debit,
+        'total_credit': total_credit,
     })

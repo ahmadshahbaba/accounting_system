@@ -10,7 +10,6 @@ from .models import FinancialTransaction
 from customers.models import Customer
 from suppliers.models import Supplier
 from misc_persons.models import MiscPerson
-from settings_app.models import Currency
 
 def jalali_to_gregorian(jalali_str):
     try:
@@ -30,7 +29,8 @@ def transaction_list(request):
 @login_required
 def transaction_create_in(request):
     """
-    واریز = OUT (بستانکار - کاهش بدهی)
+    ثبت واریز به حساب فروشگاه (IN)
+    یعنی شخص به حساب ما پول واریز می‌کند => IN
     """
     if request.method == 'POST':
         person_type = request.POST.get('person_type')
@@ -41,7 +41,7 @@ def transaction_create_in(request):
         gregorian_date = jalali_to_gregorian(jalali_date)
 
         data = {
-            'transaction_type': 'OUT',   # ← بستانکار
+            'transaction_type': 'IN',   # ← واریز = IN
             'person_type': person_type,
             'amount': amount,
             'description': description,
@@ -73,7 +73,8 @@ def transaction_create_in(request):
 @login_required
 def transaction_create_out(request):
     """
-    برداشت = IN (بدهکار - افزایش بدهی)
+    ثبت برداشت از حساب فروشگاه (OUT)
+    یعنی شخص از حساب ما پول برداشت می‌کند => OUT
     """
     if request.method == 'POST':
         person_type = request.POST.get('person_type')
@@ -84,7 +85,7 @@ def transaction_create_out(request):
         gregorian_date = jalali_to_gregorian(jalali_date)
 
         data = {
-            'transaction_type': 'IN',   # ← بدهکار
+            'transaction_type': 'OUT',   # ← برداشت = OUT
             'person_type': person_type,
             'amount': amount,
             'description': description,

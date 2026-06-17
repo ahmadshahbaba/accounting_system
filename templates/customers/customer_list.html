@@ -75,10 +75,10 @@
                             <td>{{ customer.currency.name }} ({{ customer.currency.symbol }})</td>
                             <td>{{ customer.address|default:"-" }}</td>
                             <td>
-                                {% if customer.balance < 0 %}
+                                {% if customer.balance > 0 %}
                                     <span class="text-danger fw-bold">{{ customer.balance|floatformat:2 }}</span>
-                                {% elif customer.balance > 0 %}
-                                    <span class="text-success fw-bold">+{{ customer.balance|floatformat:2 }}</span>
+                                {% elif customer.balance < 0 %}
+                                    <span class="text-success fw-bold">+{{ customer.balance|floatformat:2|cut:"-" }}</span>
                                 {% else %}
                                     <span class="text-primary fw-bold">0</span>
                                 {% endif %}

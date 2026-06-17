@@ -9,25 +9,29 @@ from transactions.models import FinancialTransaction
 from settings_app.models import Currency
 
 def calculate_supplier_balance(supplier):
-    """
-    محاسبه بیلانس (تراز) تهیه‌کننده:
-    جمع کل خریدها + تراکنش‌های IN (دریافت از تهیه‌کننده) - تراکنش‌های OUT (پرداخت به تهیه‌کننده)
-    """
+    # خریدها (بدهکار - افزایش بدهی به تهیه‌کننده)
     total_purchases = PurchaseInvoice.objects.filter(supplier=supplier).aggregate(
         total=models.Sum('total_amount')
     )['total'] or Decimal('0')
-    
+
+    # واریز به تهیه‌کننده (IN) = بستانکار (کاهش بدهی)
     total_in = FinancialTransaction.objects.filter(
-        supplier=supplier,
-        transaction_type='IN'
-    ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0')
+        person_type='SUPPLIER', supplier=supplier, transaction_type='IN'
+    ).exclude(description__icontains='قرض').aggregate(
+        total=models.Sum('amount')
+    )['total'] or Decimal('0')
     
+    # برداشت از تهیه‌کننده (OUT) = بدهکار (افزایش بدهی)
     total_out = FinancialTransaction.objects.filter(
-        supplier=supplier,
-        transaction_type='OUT'
-    ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0')
-    
-    return (total_purchases + total_in) - total_out
+        person_type='SUPPLIER', supplier=supplier, transaction_type='OUT'
+    ).exclude(description__icontains='قرض').aggregate(
+        total=models.Sum('amount')
+    )['total'] or Decimal('0')
+
+    debit = total_purchases + total_out
+    credit = total_in
+    balance = debit - credit
+    return balance
 
 @login_required
 def supplier_list(request):
@@ -60,15 +64,9 @@ def supplier_create(request):
         currency_id = request.POST.get('currency')
         address = request.POST.get('address', '')
         currency = get_object_or_404(Currency, id=currency_id)
-        Supplier.objects.create(
-            name=name,
-            phone=phone,
-            currency=currency,
-            address=address
-        )
+        Supplier.objects.create(name=name, phone=phone, currency=currency, address=address)
         messages.success(request, f'تهیه‌کننده {name} با موفقیت اضافه شد.')
         return redirect('suppliers:supplier_list')
-    
     currencies = Currency.objects.filter(is_active=True)
     return render(request, 'suppliers/supplier_form.html', {'currencies': currencies})
 
@@ -83,7 +81,6 @@ def supplier_edit(request, pk):
         supplier.save()
         messages.success(request, f'تهیه‌کننده {supplier.name} با موفقیت ویرایش شد.')
         return redirect('suppliers:supplier_list')
-    
     currencies = Currency.objects.filter(is_active=True)
     return render(request, 'suppliers/supplier_form.html', {
         'supplier': supplier,
@@ -102,45 +99,54 @@ def supplier_delete(request, pk):
 @login_required
 def supplier_transactions(request, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
-    
-    purchases = PurchaseInvoice.objects.filter(supplier=supplier).order_by('-date')
-    payments = FinancialTransaction.objects.filter(supplier=supplier).order_by('-date_created')
-    
+
+    purchases = PurchaseInvoice.objects.filter(supplier=supplier).order_by('date')
+    financial_transactions = FinancialTransaction.objects.filter(
+        supplier=supplier
+    ).exclude(description__icontains='قرض').order_by('date_created')
+
     transactions_list = []
-    
+    total_debit = Decimal('0')
+    total_credit = Decimal('0')
+
     for p in purchases:
+        amount = p.total_amount
+        total_debit += amount
         transactions_list.append({
             'date': p.date,
             'type': 'خرید',
-            'description': f'فاکتور شماره {p.invoice_number}',
-            'debit': p.total_amount,
+            'description': f'فاکتور {p.invoice_number}',
+            'debit': amount,
             'credit': None,
             'balance': None,
         })
-    
-    for pay in payments:
-        transaction_date = pay.date_created.date() if hasattr(pay.date_created, 'date') else pay.date_created
-        if pay.transaction_type == 'OUT':
+
+    for ft in financial_transactions:
+        if ft.transaction_type == 'OUT':  # برداشت = بدهکار
+            amount = ft.amount
+            total_debit += amount
             transactions_list.append({
-                'date': transaction_date,
-                'type': 'پرداخت',
-                'description': pay.description,
-                'debit': None,
-                'credit': pay.amount,
-                'balance': None,
-            })
-        else:
-            transactions_list.append({
-                'date': transaction_date,
-                'type': 'دریافت',
-                'description': pay.description,
-                'debit': pay.amount,
+                'date': ft.date_created,
+                'type': 'برداشت',
+                'description': ft.description,
+                'debit': amount,
                 'credit': None,
                 'balance': None,
             })
-    
-    transactions_list.sort(key=lambda x: x['date'], reverse=True)
-    
+        else:  # IN = واریز = بستانکار
+            amount = ft.amount
+            total_credit += amount
+            transactions_list.append({
+                'date': ft.date_created,
+                'type': 'واریز',
+                'description': ft.description,
+                'debit': None,
+                'credit': amount,
+                'balance': None,
+            })
+
+    transactions_list.sort(key=lambda x: x['date'])
+
     balance = Decimal('0')
     for item in transactions_list:
         if item['debit']:
@@ -148,8 +154,10 @@ def supplier_transactions(request, pk):
         if item['credit']:
             balance -= item['credit']
         item['balance'] = balance
-    
+
     return render(request, 'suppliers/supplier_transactions.html', {
         'supplier': supplier,
         'transactions': transactions_list,
+        'total_debit': total_debit,
+        'total_credit': total_credit,
     })
