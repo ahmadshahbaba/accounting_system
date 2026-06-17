@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- بخش جستجو -->
+    <!-- بخش جستجو (بدون تغییر) -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <h6 class="m-0 font-weight-bold text-primary">{% trans "جستجوی پیشرفته فروشات" %}</h6>
@@ -66,7 +66,7 @@
                         {% for sale in sales %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td>{{ sale.transaction_date|to_jalali }}</td>
+                            <td>{{ sale.transaction_date|to_jalali_number }}</td>  <!-- ← تغییر -->
                             <td>{{ sale.invoice_number }}</td>
                             <td>{% if sale.customer %}{{ sale.customer.name }}{% else %}{{ sale.customer_name }}{% endif %}</td>
                             <td>{{ sale.total_amount|floatformat:2 }}</td>
@@ -100,6 +100,7 @@
     </div>
 </div>
 
+<!-- بقیه اسکریپت‌ها (بدون تغییر) -->
 <link rel="stylesheet" href="https://unpkg.com/persian-datepicker@latest/dist/css/persian-datepicker.min.css"/>
 <script src="https://unpkg.com/persian-date@latest/dist/persian-date.min.js"></script>
 <script src="https://unpkg.com/persian-datepicker@latest/dist/js/persian-datepicker.min.js"></script>
@@ -116,7 +117,7 @@
     });
 
     function confirmDelete(id) {
-        if (confirm('{% trans "آیا از حذف این فاکتور اطمینان دارید؟" %}')) {
+        if (confirm('آیا از حذف این فاکتور اطمینان دارید؟')) {
             window.location.href = "{% url 'sales:sale_delete' 0 %}".replace('0', id);
         }
     }

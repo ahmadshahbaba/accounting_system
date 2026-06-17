@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'expenses',
     'settings_app',
     'common',
+    'utils',   # ← حتماً این خط را داشته باش
+
 ]
 
 MIDDLEWARE = [
