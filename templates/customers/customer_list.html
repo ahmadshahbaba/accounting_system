@@ -84,17 +84,11 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'customers:customer_transactions_pdf' customer.id %}" 
-                                   class="btn btn-sm btn-success" 
-                                   target="_blank" 
-                                   title="دانلود PDF و ارسال به واتساپ">
-                                    <i class="fab fa-whatsapp"></i>
-                                </a>
                                 <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i>
+                                    <i class="fas fa-edit"></i> {% trans "ویرایش" %}
                                 </a>
                                 <a href="#" class="btn btn-sm btn-danger" onclick="confirmDelete({{ customer.id }})">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash"></i> {% trans "حذف" %}
                                 </a>
                             </td>
                         </tr>

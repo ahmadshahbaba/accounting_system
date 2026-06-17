@@ -1,11 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from django.template.loader import get_template
 from decimal import Decimal
 from django.db import models
-from xhtml2pdf import pisa
 from .models import Customer
 from transactions.models import FinancialTransaction
 from sales.models import Sale
@@ -167,76 +164,3 @@ def customer_transactions(request, pk):
         'customer': customer,
         'transactions': transactions_list,
     })
-
-@login_required
-def customer_transactions_pdf(request, pk):
-    customer = get_object_or_404(Customer, pk=pk)
-
-    financial_transactions = FinancialTransaction.objects.filter(
-        person_type='CUSTOMER',
-        customer=customer
-    ).exclude(description__icontains='قرض').order_by('-date_created')
-
-    sales = Sale.objects.filter(
-        customer=customer,
-        payment_method='CREDIT',
-        remaining_amount__gt=0
-    ).order_by('-date')
-
-    transactions_list = []
-
-    for ft in financial_transactions:
-        if ft.transaction_type == 'OUT':
-            transactions_list.append({
-                'date': ft.date_created,
-                'type': 'واریز',
-                'description': ft.description,
-                'debit': None,
-                'credit': ft.amount,
-                'balance': None,
-            })
-        else:
-            transactions_list.append({
-                'date': ft.date_created,
-                'type': 'برداشت',
-                'description': ft.description,
-                'debit': ft.amount,
-                'credit': None,
-                'balance': None,
-            })
-
-    for sale in sales:
-        transactions_list.append({
-            'date': sale.date,
-            'type': 'فروش قرضی',
-            'description': f'فاکتور {sale.invoice_number} - قرض',
-            'debit': sale.remaining_amount,
-            'credit': None,
-            'balance': None,
-        })
-
-    transactions_list.sort(key=lambda x: x['date'], reverse=True)
-
-    balance = Decimal('0')
-    for item in transactions_list:
-        if item['debit']:
-            balance += item['debit']
-        if item['credit']:
-            balance -= item['credit']
-        item['balance'] = balance
-
-    context = {
-        'customer': customer,
-        'transactions': transactions_list,
-    }
-
-    template = get_template('customers/customer_transactions_pdf.html')
-    html = template.render(context)
-
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="transactions_{customer.name}_{customer.id}.pdf"'
-
-    pisa_status = pisa.CreatePDF(html, dest=response)
-    if pisa_status.err:
-        return HttpResponse('خطا در تولید PDF', status=500)
-    return response
