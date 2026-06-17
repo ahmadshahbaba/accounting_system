@@ -180,20 +180,18 @@
 </head>
 <body>
     <div class="top-navbar">
-        <div class="store-name"><i class="fas fa-store"></i> {% trans "فروشگاه مواد غذایی توفیق الهی" %}</div>
+        <div class="store-name"><i class="fas fa-store"></i> میوه خشک فروشی سلطانی</div>
         <div class="top-nav-left">
-            <a href="{% url 'sales:new_sale' %}" class="shortcut-btn" title="فروش جدید"><i class="fas fa-cash-register"></i><span> {% trans "فروش جدید" %}</span></a>
-            <a href="{% url 'transactions:transaction_create_in' %}" class="shortcut-btn" title="واریز"><i class="fas fa-plus-circle text-success"></i><span> {% trans "واریز" %}</span></a>
-            <a href="{% url 'transactions:transaction_create_out' %}" class="shortcut-btn" title="برداشت"><i class="fas fa-minus-circle text-danger"></i><span> {% trans "برداشت" %}</span></a>
-            
-            <!-- بخش انتخاب زبان حذف شد -->
+            <a href="{% url 'sales:new_sale' %}" class="shortcut-btn" title="فروش جدید"><i class="fas fa-cash-register"></i><span> فروش جدید</span></a>
+            <a href="{% url 'transactions:transaction_create_in' %}" class="shortcut-btn" title="واریز"><i class="fas fa-plus-circle text-success"></i><span> واریز</span></a>
+            <a href="{% url 'transactions:transaction_create_out' %}" class="shortcut-btn" title="برداشت"><i class="fas fa-minus-circle text-danger"></i><span> برداشت</span></a>
             
             <div class="admin-info">
                 <div class="admin-avatar"><i class="fas fa-user"></i></div>
                 <span class="admin-name">{{ user.get_full_name|default:user.username }}</span>
             </div>
             <div class="datetime" id="current-datetime"></div>
-            <button type="button" class="logout-btn" id="logoutTrigger"><i class="fas fa-sign-out-alt"></i> <span>{% trans "خروج" %}</span></button>
+            <button type="button" class="logout-btn" id="logoutTrigger"><i class="fas fa-sign-out-alt"></i> <span>خروج</span></button>
             <form id="logout-form" action="{% url 'logout' %}" method="post" style="display: none;">{% csrf_token %}</form>
         </div>
     </div>
@@ -201,11 +199,11 @@
     <div id="logoutModal" class="logout-modal">
         <div class="logout-modal-content">
             <div class="logout-modal-icon"><i class="fas fa-question"></i></div>
-            <h4>{% trans "خروج از سیستم" %}</h4>
-            <p>{% trans "آیا مطمئن هستید که می‌خواهید از سیستم خارج شوید؟" %}</p>
+            <h4>خروج از سیستم</h4>
+            <p>آیا مطمئن هستید که می‌خواهید از سیستم خارج شوید؟</p>
             <div class="logout-modal-buttons">
-                <button class="btn-cancel" id="cancelLogout">{% trans "خیر، انصراف" %}</button>
-                <button class="btn-confirm" id="confirmLogout">{% trans "بله، خارج شوم" %}</button>
+                <button class="btn-cancel" id="cancelLogout">خیر، انصراف</button>
+                <button class="btn-confirm" id="confirmLogout">بله، خارج شوم</button>
             </div>
         </div>
     </div>
@@ -213,74 +211,74 @@
     <button class="mobile-menu-btn" id="sidebarToggle"><i class="fas fa-bars"></i></button>
 
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-header"><i class="fas fa-chart-line"></i> {% trans "منوی اصلی" %}</div>
+        <div class="sidebar-header"><i class="fas fa-chart-line"></i> منوی اصلی</div>
         <ul class="nav flex-column">
-            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> {% trans "داشبورد" %}</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i> داشبورد</a></li>
             
             <!-- اجناس -->
-            <li class="nav-item dropdown-toggle" data-menu="products"><i class="fas fa-boxes"></i> {% trans "اجناس" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="products"><i class="fas fa-boxes"></i> اجناس</li>
             <ul class="submenu" id="productsSubmenu">
-                <li><a href="{% url 'inventory:product_create' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت جنس جدید" %}</a></li>
-                <li><a href="{% url 'inventory:product_list' %}"><i class="fas fa-list"></i> {% trans "لیست اجناس" %}</a></li>
-                <li><a href="{% url 'inventory:capital' %}"><i class="fas fa-chart-pie"></i> {% trans "سرمایه دکان" %}</a></li>
+                <li><a href="{% url 'inventory:product_create' %}"><i class="fas fa-plus-circle"></i> ثبت جنس جدید</a></li>
+                <li><a href="{% url 'inventory:product_list' %}"><i class="fas fa-list"></i> لیست اجناس</a></li>
+                <li><a href="{% url 'inventory:capital' %}"><i class="fas fa-chart-pie"></i> سرمایه دکان</a></li>
             </ul>
             
             <!-- مشتریان -->
-            <li class="nav-item dropdown-toggle" data-menu="customers"><i class="fas fa-users"></i> {% trans "مشتریان" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="customers"><i class="fas fa-users"></i> مشتریان</li>
             <ul class="submenu" id="customersSubmenu">
-                <li><a href="{% url 'customers:customer_create' %}"><i class="fas fa-user-plus"></i> {% trans "ثبت مشتری جدید" %}</a></li>
-                <li><a href="{% url 'customers:customer_list' %}"><i class="fas fa-list"></i> {% trans "لیست مشتریان" %}</a></li>
+                <li><a href="{% url 'customers:customer_create' %}"><i class="fas fa-user-plus"></i> ثبت مشتری جدید</a></li>
+                <li><a href="{% url 'customers:customer_list' %}"><i class="fas fa-list"></i> لیست مشتریان</a></li>
             </ul>
             
             <!-- تهیه‌کنندگان -->
-            <li class="nav-item dropdown-toggle" data-menu="suppliers"><i class="fas fa-people-arrows"></i> {% trans "تهیه‌کنندگان" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="suppliers"><i class="fas fa-people-arrows"></i> تهیه‌کنندگان</li>
             <ul class="submenu" id="suppliersSubmenu">
-                <li><a href="{% url 'suppliers:supplier_create' %}"><i class="fas fa-user-plus"></i> {% trans "ثبت تهیه‌کننده جدید" %}</a></li>
-                <li><a href="{% url 'suppliers:supplier_list' %}"><i class="fas fa-list"></i> {% trans "لیست تهیه‌کنندگان" %}</a></li>
+                <li><a href="{% url 'suppliers:supplier_create' %}"><i class="fas fa-user-plus"></i> ثبت تهیه‌کننده جدید</a></li>
+                <li><a href="{% url 'suppliers:supplier_list' %}"><i class="fas fa-list"></i> لیست تهیه‌کنندگان</a></li>
             </ul>
             
             <!-- اشخاص متفرقه -->
-            <li class="nav-item dropdown-toggle" data-menu="misc"><i class="fas fa-user-friends"></i> {% trans "اشخاص متفرقه" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="misc"><i class="fas fa-user-friends"></i> اشخاص متفرقه</li>
             <ul class="submenu" id="miscSubmenu">
-                <li><a href="{% url 'misc_persons:misc_create' %}"><i class="fas fa-user-plus"></i> {% trans "ثبت شخص جدید" %}</a></li>
-                <li><a href="{% url 'misc_persons:misc_list' %}"><i class="fas fa-list"></i> {% trans "لیست اشخاص" %}</a></li>
+                <li><a href="{% url 'misc_persons:misc_create' %}"><i class="fas fa-user-plus"></i> ثبت شخص جدید</a></li>
+                <li><a href="{% url 'misc_persons:misc_list' %}"><i class="fas fa-list"></i> لیست اشخاص</a></li>
             </ul>
             
             <!-- فروشات -->
-            <li class="nav-item dropdown-toggle" data-menu="sales"><i class="fas fa-cash-register"></i> {% trans "فروشات" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="sales"><i class="fas fa-cash-register"></i> فروشات</li>
             <ul class="submenu" id="salesSubmenu">
-                <li><a href="{% url 'sales:new_sale' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت فروش جدید" %}</a></li>
-                <li><a href="{% url 'sales:sale_list' %}"><i class="fas fa-list"></i> {% trans "لیست فروشات" %}</a></li>
+                <li><a href="{% url 'sales:new_sale' %}"><i class="fas fa-plus-circle"></i> ثبت فروش جدید</a></li>
+                <li><a href="{% url 'sales:sale_list' %}"><i class="fas fa-list"></i> لیست فروشات</a></li>
             </ul>
             
             <!-- خریداری -->
-            <li class="nav-item dropdown-toggle" data-menu="purchases"><i class="fas fa-truck"></i> {% trans "خریداری" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="purchases"><i class="fas fa-truck"></i> خریداری</li>
             <ul class="submenu" id="purchasesSubmenu">
-                <li><a href="{% url 'purchases:purchase_create' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت خرید جدید" %}</a></li>
-                <li><a href="{% url 'purchases:purchase_list' %}"><i class="fas fa-list"></i> {% trans "لیست خریداری" %}</a></li>
+                <li><a href="{% url 'purchases:purchase_create' %}"><i class="fas fa-plus-circle"></i> ثبت خرید جدید</a></li>
+                <li><a href="{% url 'purchases:purchase_list' %}"><i class="fas fa-list"></i> لیست خریداری</a></li>
             </ul>
             
             <!-- تراکنش -->
-            <li class="nav-item dropdown-toggle" data-menu="transactions"><i class="fas fa-exchange-alt"></i> {% trans "تراکنش" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="transactions"><i class="fas fa-exchange-alt"></i> تراکنش</li>
             <ul class="submenu" id="transactionsSubmenu">
-                <li><a href="{% url 'transactions:transaction_create_in' %}"><i class="fas fa-plus-circle text-success"></i> {% trans "واریز" %}</a></li>
-                <li><a href="{% url 'transactions:transaction_create_out' %}"><i class="fas fa-minus-circle text-danger"></i> {% trans "برداشت" %}</a></li>
-                <li><a href="{% url 'transactions:transaction_list' %}"><i class="fas fa-list"></i> {% trans "لیست تراکنش" %}</a></li>
+                <li><a href="{% url 'transactions:transaction_create_in' %}"><i class="fas fa-plus-circle text-success"></i> واریز</a></li>
+                <li><a href="{% url 'transactions:transaction_create_out' %}"><i class="fas fa-minus-circle text-danger"></i> برداشت</a></li>
+                <li><a href="{% url 'transactions:transaction_list' %}"><i class="fas fa-list"></i> لیست تراکنش</a></li>
             </ul>
             
             <!-- مصارف -->
-            <li class="nav-item dropdown-toggle" data-menu="expenses"><i class="fas fa-utensils"></i> {% trans "مصارف" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="expenses"><i class="fas fa-utensils"></i> مصارف</li>
             <ul class="submenu" id="expensesSubmenu">
-                <li><a href="{% url 'expenses:expense_create' %}"><i class="fas fa-plus-circle"></i> {% trans "ثبت مصرف جدید" %}</a></li>
-                <li><a href="{% url 'expenses:expense_list' %}"><i class="fas fa-list"></i> {% trans "لیست مصارف" %}</a></li>
+                <li><a href="{% url 'expenses:expense_create' %}"><i class="fas fa-plus-circle"></i> ثبت مصرف جدید</a></li>
+                <li><a href="{% url 'expenses:expense_list' %}"><i class="fas fa-list"></i> لیست مصارف</a></li>
             </ul>
             
             <!-- تنظیمات -->
-            <li class="nav-item dropdown-toggle" data-menu="settings"><i class="fas fa-cog"></i> {% trans "تنظیمات" %}</li>
+            <li class="nav-item dropdown-toggle" data-menu="settings"><i class="fas fa-cog"></i> تنظیمات</li>
             <ul class="submenu" id="settingsSubmenu">
-                <li><a href="{% url 'settings_app:general_info' %}"><i class="fas fa-info-circle"></i> {% trans "معلومات عمومی" %}</a></li>
-                <li><a href="{% url 'settings_app:units_list' %}"><i class="fas fa-ruler"></i> {% trans "واحدات" %}</a></li>
-                <li><a href="{% url 'settings_app:managers_list' %}"><i class="fas fa-users-cog"></i> {% trans "لیست مدیران" %}</a></li>
+                <li><a href="{% url 'settings_app:general_info' %}"><i class="fas fa-info-circle"></i> معلومات عمومی</a></li>
+                <li><a href="{% url 'settings_app:units_list' %}"><i class="fas fa-ruler"></i> واحدات</a></li>
+                <li><a href="{% url 'settings_app:managers_list' %}"><i class="fas fa-users-cog"></i> لیست مدیران</a></li>
             </ul>
         </ul>
     </div>
