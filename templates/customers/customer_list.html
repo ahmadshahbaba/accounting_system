@@ -15,13 +15,11 @@
                 <div class="row g-2 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label small fw-bold">{% trans "نام مشتری" %}</label>
-                        <input type="text" name="name" class="form-control form-control-sm" 
-                               placeholder="جستجو بر اساس نام..." value="{{ request.GET.name|default:'' }}">
+                        <input type="text" name="name" class="form-control form-control-sm" placeholder="جستجو بر اساس نام..." value="{{ request.GET.name|default:'' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-bold">{% trans "شماره تماس" %}</label>
-                        <input type="text" name="phone" class="form-control form-control-sm" 
-                               placeholder="جستجو بر اساس شماره..." value="{{ request.GET.phone|default:'' }}">
+                        <input type="text" name="phone" class="form-control form-control-sm" placeholder="جستجو بر اساس شماره..." value="{{ request.GET.phone|default:'' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small fw-bold">{% trans "واحد پول" %}</label>
@@ -47,7 +45,7 @@
                 </div>
             </form>
 
-            <!-- جدول لیست مشتریان -->
+            <!-- جدول مشتریان -->
             <div class="table-responsive">
                 <table class="table table-bordered table-hover text-center">
                     <thead>
@@ -66,8 +64,7 @@
                         <tr>
                             <td>{{ forloop.counter }}</td>
                             <td>
-                                <a href="{% url 'customers:customer_transactions' customer.id %}" 
-                                   style="color: #4e73df; text-decoration: none; font-weight: 500;">
+                                <a href="{% url 'customers:customer_transactions' customer.id %}" style="color: #4e73df; text-decoration: none; font-weight: 500;">
                                     {{ customer.name }}
                                 </a>
                             </td>
@@ -75,14 +72,14 @@
                             <td>{{ customer.currency.name }} ({{ customer.currency.symbol }})</td>
                             <td>{{ customer.address|default:"-" }}</td>
                             <td>
-                                {% if customer.balance > 0 %}
-                                    <span class="text-success fw-bold">{{ customer.balance|floatformat:2 }}</span>
-                                {% elif customer.balance < 0 %}
+                                {% if customer.balance < 0 %}
                                     <span class="text-danger fw-bold">{{ customer.balance|floatformat:2 }}</span>
+                                {% elif customer.balance > 0 %}
+                                    <span class="text-success fw-bold">+{{ customer.balance|floatformat:2 }}</span>
                                 {% else %}
                                     <span class="text-primary fw-bold">0</span>
                                 {% endif %}
-                             </td>
+                            </td>
                             <td>
                                 <a href="{% url 'customers:customer_edit' customer.id %}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-edit"></i> {% trans "ویرایش" %}
@@ -90,12 +87,10 @@
                                 <a href="#" class="btn btn-sm btn-danger" onclick="confirmDelete({{ customer.id }})">
                                     <i class="fas fa-trash"></i> {% trans "حذف" %}
                                 </a>
-                             </td>
-                         </tr>
+                            </td>
+                        </tr>
                         {% empty %}
-                         <tr>
-                            <td colspan="7" class="text-center">{% trans "هیچ مشتری با معیارهای جستجو یافت نشد." %}</td>
-                         </tr>
+                        <tr><td colspan="7" class="text-center">{% trans "هیچ مشتری با معیارهای جستجو یافت نشد." %}</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

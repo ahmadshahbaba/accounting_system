@@ -49,7 +49,7 @@
                         {% for tr in transactions %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td>{{ tr.date|to_jalali }}</td>
+                            <td>{{ tr.date|to_jalali_number }}</td>
                             <td>{{ tr.type }}</td>
                             <td>{{ tr.description }}</td>
                             <td class="{% if tr.debit %}text-danger fw-bold{% endif %}">
@@ -58,7 +58,11 @@
                             <td class="{% if tr.credit %}text-success fw-bold{% endif %}">
                                 {% if tr.credit %}{{ tr.credit|floatformat:2 }}{% else %}-{% endif %}
                             </td>
-                            <td><strong>{{ tr.balance|floatformat:2 }}</strong></td>
+                            <td>
+                                <strong class="{% if tr.balance < 0 %}text-danger{% elif tr.balance > 0 %}text-success{% else %}text-primary{% endif %}">
+                                    {% if tr.balance < 0 %}{{ tr.balance|floatformat:2 }}{% elif tr.balance > 0 %}+{{ tr.balance|floatformat:2 }}{% else %}0{% endif %}
+                                </strong>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr><td colspan="7" class="text-center">{% trans "هیچ تراکنشی یافت نشد." %}</td></tr>
@@ -70,7 +74,9 @@
                             <th>
                                 {% if transactions %}
                                     {% with last=transactions|last %}
-                                        <strong>{{ last.balance|floatformat:2 }}</strong>
+                                        <strong class="{% if last.balance < 0 %}text-danger{% elif last.balance > 0 %}text-success{% else %}text-primary{% endif %}">
+                                            {% if last.balance < 0 %}{{ last.balance|floatformat:2 }}{% elif last.balance > 0 %}+{{ last.balance|floatformat:2 }}{% else %}0{% endif %}
+                                        </strong>
                                     {% endwith %}
                                 {% else %}
                                     0

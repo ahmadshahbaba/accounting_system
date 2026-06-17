@@ -10,7 +10,7 @@ from .models import FinancialTransaction
 from customers.models import Customer
 from suppliers.models import Supplier
 from misc_persons.models import MiscPerson
-from settings_app.models import Currency  # در صورت استفاده از ارز داینامیک
+from settings_app.models import Currency
 
 def jalali_to_gregorian(jalali_str):
     try:
@@ -29,6 +29,9 @@ def transaction_list(request):
 
 @login_required
 def transaction_create_in(request):
+    """
+    واریز = OUT (بستانکار - کاهش بدهی)
+    """
     if request.method == 'POST':
         person_type = request.POST.get('person_type')
         person_id = request.POST.get('person_id')
@@ -38,7 +41,7 @@ def transaction_create_in(request):
         gregorian_date = jalali_to_gregorian(jalali_date)
 
         data = {
-            'transaction_type': 'IN',
+            'transaction_type': 'OUT',   # ← بستانکار
             'person_type': person_type,
             'amount': amount,
             'description': description,
@@ -69,6 +72,9 @@ def transaction_create_in(request):
 
 @login_required
 def transaction_create_out(request):
+    """
+    برداشت = IN (بدهکار - افزایش بدهی)
+    """
     if request.method == 'POST':
         person_type = request.POST.get('person_type')
         person_id = request.POST.get('person_id')
@@ -78,7 +84,7 @@ def transaction_create_out(request):
         gregorian_date = jalali_to_gregorian(jalali_date)
 
         data = {
-            'transaction_type': 'OUT',
+            'transaction_type': 'IN',   # ← بدهکار
             'person_type': person_type,
             'amount': amount,
             'description': description,
@@ -118,16 +124,13 @@ def transaction_edit(request, pk):
         messages.success(request, 'تراکنش با موفقیت ویرایش شد.')
         return redirect('transactions:transaction_list')
 
-    # برای نمایش فرم ویرایش، باید نوع شخص و شخص انتخاب شده را به قالب بفرستیم
     customers = Customer.objects.all()
     suppliers = Supplier.objects.all()
     misc_persons = MiscPerson.objects.all()
-    today_jalali = transaction.transaction_date.strftime('%Y/%m/%d')  # میلادی به شمسی؟
-    # تبدیل تاریخ میلادی به شمسی برای نمایش در فیلد
     try:
         jalali_date = jdatetime.date.fromgregorian(date=transaction.transaction_date).strftime('%Y/%m/%d')
     except:
-        jalali_date = today_jalali
+        jalali_date = jdatetime.date.today().strftime('%Y/%m/%d')
 
     return render(request, 'transactions/transaction_edit.html', {
         'transaction': transaction,

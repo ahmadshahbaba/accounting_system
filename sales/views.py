@@ -7,8 +7,9 @@ from django.utils import timezone
 from decimal import Decimal
 import jdatetime
 
-from inventory.models import Product, Stock, Transaction
+from inventory.models import Product, Stock, Transaction as StockTransaction
 from customers.models import Customer
+from transactions.models import FinancialTransaction
 from .models import Sale, SaleItem
 from settings_app.models import ShopInfo, Currency
 
@@ -82,7 +83,7 @@ def new_sale(request):
                     stock.quantity -= qty
                     stock.save()
 
-                    Transaction.objects.create(
+                    StockTransaction.objects.create(
                         product=product,
                         transaction_type='OUT',
                         quantity=qty,
@@ -97,12 +98,31 @@ def new_sale(request):
                 sale.paid_amount = paid_amount
             sale.save()
 
+            # فقط برای فروش قرضی (CREDIT) تراکنش مالی ثبت میشه
+            if payment_method == 'CREDIT' and sale.remaining_amount > 0:
+                existing_transaction = FinancialTransaction.objects.filter(
+                    person_type='CUSTOMER',
+                    customer=customer,
+                    description__contains=f"فروش فاکتور {sale.invoice_number}"
+                ).exists()
+                if not existing_transaction:
+                    FinancialTransaction.objects.create(
+                        transaction_date=gregorian_date,
+                        amount=sale.remaining_amount,
+                        transaction_type='IN',
+                        person_type='CUSTOMER',
+                        customer=customer,
+                        description=f"فروش فاکتور {sale.invoice_number} (قرض)",
+                        created_by=request.user
+                    )
+            # اگر نقدی (CASH) بود، هیچ تراکنشی ثبت نمیشه
+
             messages.success(request, f'فروش با موفقیت ثبت شد. شماره فاکتور: {sale.invoice_number}')
             return redirect('sales:sale_list')
 
     products = Product.objects.filter(is_active=True)
     customers = Customer.objects.all()
-    currencies = Currency.objects.filter(is_active=True)   # <-- دریافت واحدهای پول فعال
+    currencies = Currency.objects.filter(is_active=True)
     today_jalali = jdatetime.date.today().strftime('%Y/%m/%d')
     return render(request, 'sales/sale_form.html', {
         'products': products,
@@ -114,6 +134,7 @@ def new_sale(request):
 @login_required
 def sale_list(request):
     sales = Sale.objects.all().order_by('-transaction_date', '-id')
+
     from_date_jalali = request.GET.get('from_date', '').strip()
     to_date_jalali = request.GET.get('to_date', '').strip()
     invoice_no = request.GET.get('invoice_no', '').strip()
@@ -158,7 +179,7 @@ def sale_detail(request, pk):
     items = sale.items.all()
     shop_info, created = ShopInfo.objects.get_or_create(pk=1)
     if created:
-        shop_info.shop_name = "فروشگاه مواد غذایی توفیق الهی"
+        shop_info.shop_name = "میوه خشک فروشی سلطانی"
         shop_info.address = "کابل، جادهٔ میوند، پلاک ۱۲۳"
         shop_info.phone = "۰۷۸۲ ۱۲۳ ۴۵۶"
         shop_info.email = "info@tofiq.com"
@@ -178,7 +199,7 @@ def sale_edit(request, pk):
                 stock = Stock.objects.get(product=item.product)
                 stock.quantity += item.quantity
                 stock.save()
-                Transaction.objects.filter(
+                StockTransaction.objects.filter(
                     product=item.product,
                     description__contains=f"فروش فاکتور {sale.invoice_number}"
                 ).delete()
@@ -234,7 +255,7 @@ def sale_edit(request, pk):
                     stock.quantity -= qty
                     stock.save()
 
-                    Transaction.objects.create(
+                    StockTransaction.objects.create(
                         product=product,
                         transaction_type='OUT',
                         quantity=qty,
@@ -249,12 +270,29 @@ def sale_edit(request, pk):
                 sale.paid_amount = paid_amount
             sale.save()
 
+            # اصلاح تراکنش مالی قرض
+            FinancialTransaction.objects.filter(
+                person_type='CUSTOMER',
+                customer=sale.customer,
+                description__contains=f"فروش فاکتور {sale.invoice_number}"
+            ).delete()
+            if payment_method == 'CREDIT' and sale.remaining_amount > 0:
+                FinancialTransaction.objects.create(
+                    transaction_date=gregorian_date,
+                    amount=sale.remaining_amount,
+                    transaction_type='IN',
+                    person_type='CUSTOMER',
+                    customer=sale.customer,
+                    description=f"فروش فاکتور {sale.invoice_number} (قرض)",
+                    created_by=request.user
+                )
+
             messages.success(request, f'فاکتور {sale.invoice_number} با موفقیت ویرایش شد.')
             return redirect('sales:sale_list')
 
     products = Product.objects.filter(is_active=True)
     customers = Customer.objects.all()
-    currencies = Currency.objects.filter(is_active=True)   # <-- دریافت واحدهای پول فعال
+    currencies = Currency.objects.filter(is_active=True)
     today_jalali = jdatetime.date.today().strftime('%Y/%m/%d')
     return render(request, 'sales/sale_edit.html', {
         'sale': sale,
@@ -272,10 +310,15 @@ def sale_delete(request, pk):
             stock = Stock.objects.get(product=item.product)
             stock.quantity += item.quantity
             stock.save()
-            Transaction.objects.filter(
+            StockTransaction.objects.filter(
                 product=item.product,
                 description__contains=f"فروش فاکتور {sale.invoice_number}"
             ).delete()
+        FinancialTransaction.objects.filter(
+            person_type='CUSTOMER',
+            customer=sale.customer,
+            description__contains=f"فروش فاکتور {sale.invoice_number}"
+        ).delete()
         sale.delete()
     messages.success(request, f'فاکتور {sale.invoice_number} حذف شد.')
     return redirect('sales:sale_list')
